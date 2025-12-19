@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revenium FinOps Showcase - Report Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .intro-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .intro-card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .intro-card p {
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .quick-start {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .quick-start h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .quick-start code {
+            background: #333;
+            color: #0f0;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .quick-start ol {
+            margin-left: 20px;
+            line-height: 2;
+        }
+
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .report-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .report-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .report-card .category {
+            font-size: 0.85em;
+            color: #667eea;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .report-card h3 {
+            color: #1a1a1a;
+            font-size: 1.4em;
+            margin-bottom: 10px;
+        }
+
+        .report-card .description {
+            color: #666;
+            line-height: 1.5;
+            font-size: 0.95em;
+        }
+
+        .report-card .icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .category-header {
+            color: white;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            padding: 40px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .stat-box .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-box .label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .reports-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Revenium FinOps Showcase</h1>
+            <p>AI Cost Intelligence & Usage-Based Revenue Analytics</p>
+        </div>
+
+        <div class="intro-card">
+            <h2>Welcome to the Revenium FinOps Showcase</h2>
+            <p>
+                This interactive showcase demonstrates how <strong>Revenium</strong> enables comprehensive 
+                FinOps domains and usage-based revenue analysis for AI costs. Explore realistic simulations, 
+                API integration examples, and detailed business insights.
+            </p>
+            <p>
+                <strong>What you'll find here:</strong> Cost allocation analysis, customer profitability tracking, 
+                pricing strategy simulations, feature economics, and real-time optimization opportunities.
+            </p>
+
+            <div class="quick-start">
+                <h3>🎯 Quick Start</h3>
+                <ol>
+                    <li>Generate simulated data: <code>cd src && python3 simulator/core.py</code></li>
+                    <li>Run all analyzers: <code>python3 run_all_analyzers.py</code></li>
+                    <li>View reports: <code>cd ../viewer && python3 serve.py</code></li>
+                    <li>Browse reports below or click any card to view detailed analysis</li>
+                </ol>
+            </div>
+        </div>
+
+        <div id="stats" class="stats"></div>
+
+        <div id="reports-container">
+            <div class="loading">📊 Loading reports...</div>
+        </div>
+    </div>
+
+    <script>
+        // Load and display reports from manifest
+        async function loadReports() {
+            try {
+                const response = await fetch('../src/reports/html/manifest.json');
+                
+                if (!response.ok) {
+                    throw new Error('Manifest not found. Please run the analyzers first.');
+                }
+
+                const manifest = await response.json();
+                displayStats(manifest);
+                displayReports(manifest);
+            } catch (error) {
+                document.getElementById('reports-container').innerHTML = `
+                    <div class="error">
+                        <h3>⚠️ No Reports Found</h3>
+                        <p>${error.message}</p>
+                        <p>To generate reports, run:</p>
+                        <pre style="background: #333; color: #0f0; padding: 15px; border-radius: 5px; margin-top: 10px;">
+cd src
+python3 run_all_analyzers.py</pre>
+                    </div>
+                `;
+            }
+        }
+
+        function displayStats(manifest) {
+            const categories = {};
+            manifest.reports.forEach(report => {
+                categories[report.category] = (categories[report.category] || 0) + 1;
+            });
+
+            const statsHtml = `
+                <div class="stat-box">
+                    <div class="value">${manifest.reports.length}</div>
+                    <div class="label">Total Reports</div>
+                </div>
+                <div class="stat-box">
+                    <div class="value">${Object.keys(categories).length}</div>
+                    <div class="label">Categories</div>
+                </div>
+                <div class="stat-box">
+                    <div class="value">${new Date(manifest.generated_at).toLocaleDateString()}</div>
+                    <div class="label">Last Updated</div>
+                </div>
+            `;
+
+            document.getElementById('stats').innerHTML = statsHtml;
+        }
+
+        function displayReports(manifest) {
+            // Group reports by category
+            const categories = {};
+            manifest.reports.forEach(report => {
+                if (!categories[report.category]) {
+                    categories[report.category] = [];
+                }
+                categories[report.category].push(report);
+            });
+
+            // Generate HTML for each category
+            let html = '';
+            for (const [category, reports] of Object.entries(categories)) {
+                html += `
+                    <div class="category-section">
+                        <h2 class="category-header">${getCategoryIcon(category)} ${category}</h2>
+                        <div class="reports-grid">
+                `;
+
+                reports.forEach(report => {
+                    html += `
+                        <a href="../src/reports/html/${report.filename}" class="report-card" target="_blank">
+                            <div class="icon">${getReportIcon(report.title)}</div>
+                            <div class="category">${category}</div>
+                            <h3>${report.title}</h3>
+                            <div class="description">${getReportDescription(report.title)}</div>
+                        </a>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('reports-container').innerHTML = html;
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                'FinOps Domains': '💰',
+                'Usage-Based Revenue': '📈',
+                'Scenarios': '🎯',
+                'Integration': '🔧'
+            };
+            return icons[category] || '📊';
+        }
+
+        function getReportIcon(title) {
+            if (title.includes('Understanding')) return '🔍';
+            if (title.includes('Performance')) return '⚡';
+            if (title.includes('Real-time')) return '⏱️';
+            if (title.includes('Optimization')) return '🎯';
+            if (title.includes('Alignment')) return '🤝';
+            if (title.includes('Profitability')) return '💵';
+            if (title.includes('Pricing')) return '💲';
+            if (title.includes('Feature')) return '🎨';
+            return '📊';
+        }
+
+        function getReportDescription(title) {
+            const descriptions = {
+                'FinOps: Understanding Usage & Cost': 'Comprehensive cost allocation, forecasting, and token efficiency analysis',
+                'UBR: Customer Profitability': 'Analyze cost to serve each customer and identify margin opportunities',
+                'FinOps: Performance Tracking': 'Model efficiency comparison and latency analysis',
+                'FinOps: Real-Time Decision Making': 'Cost anomaly detection and immediate optimization opportunities',
+                'FinOps: Rate Optimization': 'Reserved capacity analysis and model switching opportunities',
+                'FinOps: Organizational Alignment': 'Cost by organization, product, and feature with chargeback reports',
+                'UBR: Pricing Strategy': 'Compare pricing models and revenue impact projections',
+                'UBR: Feature Economics': 'Feature profitability analysis and investment recommendations'
+            };
+            return descriptions[title] || 'Detailed analysis and insights';
+        }
+
+        // Load reports on page load
+        loadReports();
+    </script>
+</body>
+</html>
