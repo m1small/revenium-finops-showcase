@@ -5,9 +5,14 @@ Analyzes cost to serve, margins, and customer lifetime value
 """
 
 import csv
+import os
+import sys
 from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 
 class CustomerProfitabilityAnalyzer:
@@ -355,15 +360,233 @@ class CustomerProfitabilityAnalyzer:
             f.write(report)
         
         print(f"✓ Customer Profitability report generated: {output_file}")
+    
+    def generate_html_report(self, output_file: str = 'reports/html/customer_profitability.html'):
+        """Generate HTML report"""
+        from utils.html_generator import HTMLReportGenerator
+        
+        cost_to_serve = self.calculate_cost_to_serve()
+        margin_analysis = self.margin_analysis()
+        unprofitable = self.identify_unprofitable_customers()
+        ltv = self.customer_lifetime_value_projection()
+        distribution = self.margin_distribution()
+        
+        # Create HTML generator
+        generator = HTMLReportGenerator(
+            title="Customer Profitability Analysis",
+            description="Cost to serve, margin analysis, and customer lifetime value projections",
+            category="Usage-Based Revenue"
+        )
+        
+        # Executive Summary
+        generator.add_section("Executive Summary", level=2)
+        generator.add_metric_cards([
+            {"label": "Total Customers", "value": f"{margin_analysis['total_customers']}"},
+            {"label": "Total Revenue", "value": f"${margin_analysis['total_revenue']:,.2f}/month"},
+            {"label": "Total AI Cost", "value": f"${margin_analysis['total_cost']:,.2f}/month"},
+            {"label": "Total Margin", "value": f"${margin_analysis['total_margin']:,.2f}/month"},
+            {"label": "Average Margin %", "value": f"{margin_analysis['avg_margin_pct']:.1f}%"}
+        ])
+        
+        # Customer Breakdown
+        generator.add_paragraph(f"""
+            <strong>Customer Breakdown:</strong><br>
+            🟢 Profitable: {margin_analysis['profitable_count']} ({margin_analysis['profitable_count']/margin_analysis['total_customers']*100:.1f}%)<br>
+            🟡 Break-even: {margin_analysis['break_even_count']} ({margin_analysis['break_even_count']/margin_analysis['total_customers']*100:.1f}%)<br>
+            🔴 Unprofitable: {margin_analysis['unprofitable_count']} ({margin_analysis['unprofitable_count']/margin_analysis['total_customers']*100:.1f}%)
+        """)
+        
+        # Top 10 Most Profitable
+        generator.add_section("Top 10 Most Profitable Customers", level=2)
+        sorted_customers = sorted(cost_to_serve.items(), key=lambda x: x[1]['margin'], reverse=True)
+        profitable_rows = []
+        for customer_id, data in sorted_customers[:10]:
+            profitable_rows.append([
+                customer_id,
+                data['tier'].capitalize(),
+                f"${data['revenue']:.2f}",
+                f"${data['ai_cost']:.2f}",
+                f"${data['margin']:.2f}",
+                f"{data['margin_pct']:.1f}%",
+                f"{data['calls']:,}"
+            ])
+        generator.add_table(
+            headers=["Customer", "Tier", "Revenue", "AI Cost", "Margin", "Margin %", "Calls"],
+            rows=profitable_rows
+        )
+        
+        # Top 10 Least Profitable
+        generator.add_section("Top 10 Least Profitable Customers", level=2)
+        least_profitable_rows = []
+        for customer_id, data in sorted_customers[-10:]:
+            least_profitable_rows.append([
+                customer_id,
+                data['tier'].capitalize(),
+                f"${data['revenue']:.2f}",
+                f"${data['ai_cost']:.2f}",
+                f"${data['margin']:.2f}",
+                f"{data['margin_pct']:.1f}%",
+                f"{data['calls']:,}"
+            ])
+        generator.add_table(
+            headers=["Customer", "Tier", "Revenue", "AI Cost", "Margin", "Margin %", "Calls"],
+            rows=least_profitable_rows
+        )
+        
+        # Unprofitable Customers Detail
+        generator.add_section("Unprofitable Customers Detail", level=2)
+        if unprofitable:
+            total_unprofitable_loss = sum(c['margin'] for c in unprofitable)
+            generator.add_alert(
+                f"<strong>Total Monthly Loss:</strong> ${abs(total_unprofitable_loss):,.2f} from {len(unprofitable)} customers",
+                alert_type='danger'
+            )
+            
+            unprofitable_rows = []
+            for customer in unprofitable[:20]:
+                unprofitable_rows.append([
+                    customer['customer_id'],
+                    customer['tier'].capitalize(),
+                    f"${customer['revenue']:.2f}",
+                    f"${customer['ai_cost']:.2f}",
+                    f"${abs(customer['margin']):.2f}",
+                    f"{customer['calls']:,}",
+                    f"${customer['cost_per_call']:.4f}"
+                ])
+            generator.add_table(
+                headers=["Customer", "Tier", "Revenue", "AI Cost", "Loss", "Calls", "Cost/Call"],
+                rows=unprofitable_rows
+            )
+        else:
+            generator.add_paragraph("No unprofitable customers identified.")
+        
+        # Margin Distribution
+        generator.add_section("Margin Distribution", level=2)
+        total = margin_analysis['total_customers']
+        dist_rows = []
+        for category, count in distribution.items():
+            pct = (count / total * 100) if total > 0 else 0
+            dist_rows.append([
+                category.replace('_', ' ').title(),
+                str(count),
+                f"{pct:.1f}%"
+            ])
+        generator.add_table(
+            headers=["Category", "Count", "Percentage"],
+            rows=dist_rows
+        )
+        
+        # Customer Lifetime Value
+        generator.add_section("Customer Lifetime Value Projections", level=2)
+        generator.add_metric_cards([
+            {"label": "Average LTV", "value": f"${ltv['avg_ltv']:,.2f}"},
+            {"label": "Average LTV:CAC Ratio", "value": f"{ltv['avg_ltv_to_cac_ratio']:.2f}x"}
+        ])
+        
+        generator.add_paragraph(f"""
+            <strong>Assumptions:</strong><br>
+            • Average customer lifetime: {ltv['assumptions']['avg_lifetime_months']} months<br>
+            • Monthly churn rate: {ltv['assumptions']['monthly_churn_rate']*100:.1f}%<br>
+            • Customer acquisition cost: ${ltv['assumptions']['assumed_cac']}
+        """)
+        
+        generator.add_section("Top 10 Customers by LTV", level=3)
+        ltv_rows = []
+        for proj in ltv['projections'][:10]:
+            payback = f"{proj['payback_months']:.1f}" if proj['payback_months'] != float('inf') else "N/A"
+            ltv_rows.append([
+                proj['customer_id'],
+                proj['tier'].capitalize(),
+                f"${proj['monthly_margin']:.2f}",
+                f"${proj['ltv']:,.2f}",
+                f"{proj['ltv_to_cac_ratio']:.2f}x",
+                payback
+            ])
+        generator.add_table(
+            headers=["Customer", "Tier", "Monthly Margin", "LTV", "LTV:CAC", "Payback (months)"],
+            rows=ltv_rows
+        )
+        
+        # Key Insights
+        generator.add_section("Key Insights", level=2)
+        insights = []
+        
+        if unprofitable:
+            total_loss = abs(sum(c['margin'] for c in unprofitable))
+            insights.append(f"<strong>Revenue at Risk:</strong> ${total_loss:,.2f}/month from {len(unprofitable)} unprofitable customers")
+        
+        tier_margins = defaultdict(list)
+        for data in cost_to_serve.values():
+            tier_margins[data['tier']].append(data['margin_pct'])
+        
+        for tier in ['starter', 'pro', 'enterprise']:
+            if tier in tier_margins:
+                avg_margin = sum(tier_margins[tier]) / len(tier_margins[tier])
+                insights.append(f"<strong>{tier.capitalize()} Tier:</strong> Average margin {avg_margin:.1f}%")
+        
+        healthy_ltv = sum(1 for p in ltv['projections'] if p['ltv_to_cac_ratio'] > 3)
+        insights.append(f"<strong>LTV Health:</strong> {healthy_ltv}/{len(ltv['projections'])} customers have LTV:CAC >3x (healthy threshold)")
+        
+        generator.add_list(insights, ordered=True)
+        
+        # Recommendations
+        generator.add_section("Recommendations", level=2)
+        
+        generator.add_section("Immediate Actions", level=3)
+        actions = []
+        if unprofitable:
+            actions.append(f"<strong>Address Unprofitable Customers:</strong> Contact {len(unprofitable)} customers losing money (upgrade tier, implement usage caps, or add overage charges)")
+        actions.append("<strong>Tier Optimization:</strong> Review pricing for customers near break-even")
+        actions.append("<strong>Usage Monitoring:</strong> Set up alerts for customers approaching unprofitability")
+        generator.add_list(actions, ordered=True)
+        
+        generator.add_section("Pricing Strategy", level=3)
+        avg_cost_by_tier = {}
+        for tier in ['starter', 'pro', 'enterprise']:
+            tier_costs = [data['ai_cost'] for data in cost_to_serve.values() if data['tier'] == tier]
+            if tier_costs:
+                avg_cost_by_tier[tier] = sum(tier_costs) / len(tier_costs)
+        
+        pricing_items = []
+        for tier, avg_cost in sorted(avg_cost_by_tier.items()):
+            recommended_price = avg_cost * 2
+            current_price = self.tier_pricing[tier]
+            if recommended_price > current_price:
+                pricing_items.append(f"<strong>{tier.capitalize()}:</strong> ${recommended_price:.2f}/month (current: ${current_price:.2f}) ⚠️ UNDERPRICED")
+            else:
+                pricing_items.append(f"<strong>{tier.capitalize()}:</strong> ${current_price:.2f}/month ✅ ADEQUATE")
+        generator.add_paragraph("<strong>Recommended Minimum Pricing</strong> (for 50% margin):")
+        generator.add_list(pricing_items, ordered=False)
+        
+        generator.add_section("Long-term Strategy", level=3)
+        strategy = [
+            "<strong>Usage-Based Pricing:</strong> Consider hybrid model with base fee + usage charges",
+            "<strong>Customer Segmentation:</strong> Create specialized tiers for high-usage customers",
+            "<strong>Value-Based Pricing:</strong> Price based on customer value, not just cost",
+            "<strong>Retention Focus:</strong> Improve LTV by reducing churn for profitable customers"
+        ]
+        generator.add_list(strategy, ordered=True)
+        
+        # Save HTML report
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        generator.save(output_file)
+        print(f"✓ Customer Profitability HTML report generated: {output_file}")
 
 
 def main():
     """Main execution"""
     import os
     os.makedirs('reports', exist_ok=True)
+    os.makedirs('reports/html', exist_ok=True)
     
     analyzer = CustomerProfitabilityAnalyzer()
+    
+    # Generate markdown report
     analyzer.generate_report()
+    
+    # Generate HTML report if requested
+    if os.environ.get('GENERATE_HTML'):
+        analyzer.generate_html_report()
 
 
 if __name__ == '__main__':

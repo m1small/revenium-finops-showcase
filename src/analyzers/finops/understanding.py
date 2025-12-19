@@ -5,9 +5,14 @@ Analyzes cost allocation, spend breakdowns, and forecasting
 """
 
 import csv
+import os
+import sys
 from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 
 class UnderstandingUsageAnalyzer:
@@ -217,15 +222,174 @@ class UnderstandingUsageAnalyzer:
             f.write(report)
         
         print(f"✓ Understanding Usage report generated: {output_file}")
+    
+    def generate_html_report(self, output_file: str = 'reports/html/finops_understanding.html'):
+        """Generate HTML report"""
+        from utils.html_generator import HTMLReportGenerator
+        
+        # Calculate metrics
+        provider_spend = self.total_spend_by_provider()
+        model_spend = self.total_spend_by_model()
+        customer_spend = self.total_spend_by_customer()
+        hierarchy = self.cost_allocation_hierarchy()
+        efficiency = self.token_efficiency_metrics()
+        forecast = self.forecast_30_day_cost()
+        
+        total_spend = sum(call['cost_usd'] for call in self.calls)
+        total_calls = len(self.calls)
+        
+        # Create HTML generator
+        generator = HTMLReportGenerator(
+            title="FinOps: Understanding Usage & Cost",
+            description="Cost allocation, spend breakdowns, and forecasting analysis",
+            category="FinOps Domain"
+        )
+        
+        # Executive Summary
+        generator.add_section("Executive Summary", level=2)
+        generator.add_metric_cards([
+            {"label": "Total AI Spend (30 days)", "value": f"${total_spend:,.2f}"},
+            {"label": "Total API Calls", "value": f"{total_calls:,}"},
+            {"label": "Average Cost per Call", "value": f"${total_spend/total_calls:.4f}"},
+            {"label": "30-Day Forecast", "value": f"${forecast['forecast_30_day']:,.2f}"},
+            {"label": "Forecast with Growth", "value": f"${forecast['forecast_with_growth']:,.2f}",
+             "trend": f"{forecast['growth_rate']*100:+.1f}%"}
+        ])
+        
+        # Spend by Provider
+        generator.add_section("Spend by Provider", level=2)
+        provider_rows = []
+        for provider, spend in sorted(provider_spend.items(), key=lambda x: x[1], reverse=True):
+            pct = (spend / total_spend * 100)
+            calls_count = sum(1 for c in self.calls if c['provider'] == provider)
+            avg_per_call = spend / calls_count if calls_count > 0 else 0
+            provider_rows.append([
+                provider.capitalize(),
+                f"${spend:,.2f}",
+                f"{pct:.1f}%",
+                f"${avg_per_call:.4f}"
+            ])
+        generator.add_table(
+            headers=["Provider", "Total Spend", "% of Total", "Avg per Call"],
+            rows=provider_rows
+        )
+        
+        # Spend by Model
+        generator.add_section("Spend by Model", level=2)
+        model_rows = []
+        for model, spend in sorted(model_spend.items(), key=lambda x: x[1], reverse=True)[:10]:
+            pct = (spend / total_spend * 100)
+            calls_count = sum(1 for c in self.calls if c['model'] == model)
+            model_rows.append([
+                model,
+                f"${spend:,.2f}",
+                f"{pct:.1f}%",
+                f"{calls_count:,}"
+            ])
+        generator.add_table(
+            headers=["Model", "Total Spend", "% of Total", "Calls"],
+            rows=model_rows
+        )
+        
+        # Top 10 Customers
+        generator.add_section("Top 10 Customers by Spend", level=2)
+        customer_rows = []
+        for customer, spend in sorted(customer_spend.items(), key=lambda x: x[1], reverse=True)[:10]:
+            calls_count = sum(1 for c in self.calls if c['customer_id'] == customer)
+            avg_per_call = spend / calls_count if calls_count > 0 else 0
+            customer_rows.append([
+                customer,
+                f"${spend:,.2f}",
+                f"{calls_count:,}",
+                f"${avg_per_call:.4f}"
+            ])
+        generator.add_table(
+            headers=["Customer ID", "Total Spend", "Calls", "Avg per Call"],
+            rows=customer_rows
+        )
+        
+        # Cost Allocation Hierarchy
+        generator.add_section("Cost Allocation Hierarchy", level=2)
+        for org, products in sorted(hierarchy.items()):
+            org_total = sum(sum(customers.values()) for customers in products.values())
+            generator.add_section(f"{org} (${org_total:,.2f})", level=3)
+            
+            items = []
+            for product, customers in sorted(products.items(), key=lambda x: sum(x[1].values()), reverse=True):
+                product_total = sum(customers.values())
+                items.append(f"<strong>{product}</strong>: ${product_total:,.2f} ({len(customers)} customers)")
+            generator.add_list(items, ordered=False)
+        
+        # Token Efficiency Metrics
+        generator.add_section("Token Efficiency Metrics", level=2)
+        generator.add_metric_cards([
+            {"label": "Total Input Tokens", "value": f"{efficiency['total_input_tokens']:,}"},
+            {"label": "Total Output Tokens", "value": f"{efficiency['total_output_tokens']:,}"},
+            {"label": "Total Tokens", "value": f"{efficiency['total_tokens']:,}"},
+            {"label": "Avg Cost per 1K Tokens", "value": f"${efficiency['avg_cost_per_1k_tokens']:.4f}"},
+            {"label": "Input/Output Ratio", "value": f"{efficiency['input_output_ratio']:.2f}"}
+        ])
+        
+        # 30-Day Cost Forecast
+        generator.add_section("30-Day Cost Forecast", level=2)
+        generator.add_metric_cards([
+            {"label": "Current Daily Average", "value": f"${forecast['current_daily_avg']:,.2f}"},
+            {"label": "Linear Forecast (30 days)", "value": f"${forecast['forecast_30_day']:,.2f}"},
+            {"label": "Growth Rate", "value": f"{forecast['growth_rate']*100:+.1f}%"},
+            {"label": "Forecast with Growth", "value": f"${forecast['forecast_with_growth']:,.2f}"}
+        ])
+        
+        if forecast['growth_rate'] > 0.1:
+            generator.add_alert(
+                f"⚠️ Cost growth rate is {forecast['growth_rate']*100:.1f}%. Expected increase of ${forecast['forecast_with_growth'] - forecast['forecast_30_day']:,.2f} over baseline.",
+                alert_type='warning'
+            )
+        
+        # Key Insights
+        generator.add_section("Key Insights", level=2)
+        top_provider = max(provider_spend.items(), key=lambda x: x[1])
+        top_10_spend = sum(spend for _, spend in sorted(customer_spend.items(), key=lambda x: x[1], reverse=True)[:10])
+        costs = [call['cost_usd'] for call in self.calls]
+        max_cost = max(costs)
+        min_cost = min(costs)
+        
+        insights = [
+            f"<strong>{top_provider[0].capitalize()}</strong> accounts for {top_provider[1]/total_spend*100:.1f}% of total spend (${top_provider[1]:,.2f})",
+            f"Top 10 customers represent {top_10_spend/total_spend*100:.1f}% of total spend (${top_10_spend:,.2f})",
+            f"Cost per call ranges from ${min_cost:.4f} to ${max_cost:.4f} (variance indicates optimization opportunities)"
+        ]
+        generator.add_list(insights, ordered=True)
+        
+        # Recommendations
+        generator.add_section("Recommendations", level=2)
+        recommendations = [
+            "<strong>Cost Allocation</strong>: Implement chargeback model based on organization/product hierarchy",
+            "<strong>Customer Monitoring</strong>: Set up alerts for top 10 customers (70% of spend)",
+            "<strong>Forecasting</strong>: Review monthly to adjust capacity planning",
+            f"<strong>Budget Planning</strong>: Allocate ${forecast['forecast_with_growth']*1.1:,.2f}/month (10% buffer)"
+        ]
+        generator.add_list(recommendations, ordered=True)
+        
+        # Save HTML report
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        generator.save(output_file)
+        print(f"✓ Understanding Usage HTML report generated: {output_file}")
 
 
 def main():
     """Main execution"""
     import os
     os.makedirs('reports', exist_ok=True)
+    os.makedirs('reports/html', exist_ok=True)
     
     analyzer = UnderstandingUsageAnalyzer()
+    
+    # Generate markdown report
     analyzer.generate_report()
+    
+    # Generate HTML report if requested
+    if os.environ.get('GENERATE_HTML'):
+        analyzer.generate_html_report()
 
 
 if __name__ == '__main__':

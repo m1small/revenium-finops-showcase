@@ -5,9 +5,14 @@ Tests different pricing models and recommends optimal structure
 """
 
 import csv
+import os
+import sys
 from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 
 class PricingStrategySimulator:
@@ -518,15 +523,260 @@ Comparison of four pricing models to optimize revenue and margins while maintain
             f.write(report)
         
         print(f"✓ Pricing Strategy report generated: {output_file}")
+    
+    def generate_html_report(self, output_file: str = 'reports/html/pricing_strategy.html'):
+        """Generate HTML report"""
+        from utils.html_generator import HTMLReportGenerator
+        
+        models = self.compare_models()
+        segment_impact = self.customer_segment_impact()
+        
+        # Create HTML generator
+        generator = HTMLReportGenerator(
+            title="Pricing Strategy Analysis",
+            description="Comparison of pricing models to optimize revenue and margins",
+            category="Usage-Based Revenue"
+        )
+        
+        # Executive Summary
+        generator.add_section("Executive Summary", level=2)
+        generator.add_paragraph("Comparison of four pricing models to optimize revenue and margins while maintaining customer satisfaction.")
+        
+        # Pricing Model Comparison
+        generator.add_section("Pricing Model Comparison", level=2)
+        comparison_rows = []
+        for model in models:
+            comparison_rows.append([
+                model['model'],
+                f"${model['total_revenue']:,.2f}",
+                f"${model['total_cost']:,.2f}",
+                f"${model['total_margin']:,.2f}",
+                f"{model['margin_pct']:.1f}%",
+                f"${model['avg_revenue_per_customer']:.2f}",
+                str(model['negative_margin_customers'])
+            ])
+        generator.add_table(
+            headers=["Model", "Total Revenue", "Total Cost", "Margin", "Margin %", "Avg Rev/Customer", "Unprofitable Customers"],
+            rows=comparison_rows
+        )
+        
+        best_margin = max(models, key=lambda x: x['total_margin'])
+        best_margin_pct = max(models, key=lambda x: x['margin_pct'])
+        
+        generator.add_metric_cards([
+            {"label": "Highest Total Margin", "value": f"{best_margin['model']}: ${best_margin['total_margin']:,.2f}"},
+            {"label": "Highest Margin %", "value": f"{best_margin_pct['model']}: {best_margin_pct['margin_pct']:.1f}%"}
+        ])
+        
+        # Model Details
+        generator.add_section("Model Details", level=2)
+        
+        # Current Model
+        current = models[0]
+        generator.add_section(f"1. {current['model']}", level=3)
+        generator.add_paragraph("<strong>Structure:</strong> Fixed monthly fee per tier")
+        
+        current_rows = []
+        for tier, price in self.current_pricing.items():
+            current_rows.append([tier.capitalize(), f"${price}"])
+        generator.add_table(headers=["Tier", "Monthly Fee"], rows=current_rows)
+        
+        generator.add_paragraph(f"<strong>Pros:</strong> Simple, predictable revenue<br><strong>Cons:</strong> {current['negative_margin_customers']} unprofitable customers, no usage alignment")
+        
+        # Tiered Model
+        tiered = models[1]
+        generator.add_section(f"2. {tiered['model']}", level=3)
+        generator.add_paragraph("<strong>Structure:</strong> Base fee + included calls + overage charges")
+        
+        tiered_rows = []
+        for tier, config in tiered['config'].items():
+            tiered_rows.append([
+                tier.capitalize(),
+                f"${config['base_fee']}",
+                f"{config['included_calls']:,}",
+                f"${config['overage_per_call']:.2f}/call"
+            ])
+        generator.add_table(
+            headers=["Tier", "Base Fee", "Included Calls", "Overage Rate"],
+            rows=tiered_rows
+        )
+        
+        generator.add_paragraph("<strong>Pros:</strong> Fair usage-based component, protects against heavy users<br><strong>Cons:</strong> More complex billing, potential customer friction on overages")
+        
+        # Pure Usage
+        pure = models[2]
+        generator.add_section(f"3. {pure['model']}", level=3)
+        generator.add_paragraph(f"<strong>Structure:</strong> Pay per use only ({pure['markup_multiplier']}x cost markup)")
+        generator.add_paragraph("<strong>Pros:</strong> Perfect cost alignment, no unprofitable customers<br><strong>Cons:</strong> Unpredictable revenue, may deter light users, highest total cost to customers")
+        
+        # Hybrid Model
+        hybrid = models[3]
+        generator.add_section(f"4. {hybrid['model']}", level=3)
+        generator.add_paragraph("<strong>Structure:</strong> Reduced base fee + cost-plus pricing")
+        
+        hybrid_rows = []
+        for tier, config in hybrid['config'].items():
+            markup_pct = (config['cost_multiplier'] - 1) * 100
+            hybrid_rows.append([
+                tier.capitalize(),
+                f"${config['base_fee']}",
+                f"{config['cost_multiplier']}x ({markup_pct:.0f}% markup)"
+            ])
+        generator.add_table(
+            headers=["Tier", "Base Fee", "Cost Multiplier"],
+            rows=hybrid_rows
+        )
+        
+        generator.add_paragraph("<strong>Pros:</strong> Balanced approach, predictable base + fair usage component<br><strong>Cons:</strong> Requires cost transparency, moderate complexity")
+        
+        # Customer Segment Impact
+        generator.add_section("Customer Segment Impact Analysis", level=2)
+        
+        for segment, data in sorted(segment_impact.items()):
+            generator.add_section(f"{segment.capitalize()} Usage Customers", level=3)
+            generator.add_metric_cards([
+                {"label": "Count", "value": f"{data['customer_count']} customers"},
+                {"label": "Avg Calls", "value": f"{data['avg_calls']:.0f} calls/month"},
+                {"label": "Avg Cost to Serve", "value": f"${data['avg_cost']:.2f}/month"}
+            ])
+            
+            generator.add_paragraph("<strong>Average Revenue per Customer by Model:</strong>")
+            model_items = []
+            for model_name, avg_revenue in data['models'].items():
+                change = ''
+                if model_name != 'current':
+                    current_rev = data['models']['current']
+                    diff = avg_revenue - current_rev
+                    diff_pct = (diff / current_rev * 100) if current_rev > 0 else 0
+                    change = f" ({diff_pct:+.1f}%)"
+                model_items.append(f"<strong>{model_name.replace('_', ' ').title()}:</strong> ${avg_revenue:.2f}{change}")
+            generator.add_list(model_items, ordered=False)
+        
+        # Revenue Impact Projection
+        generator.add_section("Revenue Impact Projection", level=2)
+        
+        current_model = models[0]
+        impact_rows = []
+        
+        # Monthly Revenue row
+        revenue_row = ["Monthly Revenue", f"${current_model['total_revenue']:,.2f}"]
+        for model in models[1:]:
+            diff = model['total_revenue'] - current_model['total_revenue']
+            revenue_row.append(f"${model['total_revenue']:,.2f} ({diff:+,.0f})")
+        impact_rows.append(revenue_row)
+        
+        # Monthly Margin row
+        margin_row = ["Monthly Margin", f"${current_model['total_margin']:,.2f}"]
+        for model in models[1:]:
+            diff = model['total_margin'] - current_model['total_margin']
+            margin_row.append(f"${model['total_margin']:,.2f} ({diff:+,.0f})")
+        impact_rows.append(margin_row)
+        
+        # Margin % row
+        margin_pct_row = ["Margin %", f"{current_model['margin_pct']:.1f}%"]
+        for model in models[1:]:
+            margin_pct_row.append(f"{model['margin_pct']:.1f}%")
+        impact_rows.append(margin_pct_row)
+        
+        # Unprofitable Customers row
+        unprof_row = ["Unprofitable Customers", str(current_model['negative_margin_customers'])]
+        for model in models[1:]:
+            unprof_row.append(str(model['negative_margin_customers']))
+        impact_rows.append(unprof_row)
+        
+        generator.add_table(
+            headers=["Metric", "Current", "Tiered", "Pure Usage", "Hybrid"],
+            rows=impact_rows
+        )
+        
+        generator.add_section("Annual Impact", level=3)
+        annual_items = []
+        for model in models[1:]:
+            annual_diff = (model['total_margin'] - current_model['total_margin']) * 12
+            annual_items.append(f"<strong>{model['model']}:</strong> ${annual_diff:+,.2f} annual margin change")
+        generator.add_list(annual_items, ordered=False)
+        
+        # Recommendation
+        generator.add_section("Recommendation", level=2)
+        
+        recommended = max(models, key=lambda x: (x['margin_pct'], -x['negative_margin_customers']))
+        
+        generator.add_section(f"Recommended Model: {recommended['model']}", level=3)
+        generator.add_alert(
+            f"<strong>Recommended:</strong> {recommended['model']} offers the best balance of margin optimization ({recommended['margin_pct']:.1f}%), revenue growth (${recommended['total_revenue'] - current_model['total_revenue']:+,.2f}/month), and risk reduction ({recommended['negative_margin_customers']} unprofitable customers).",
+            alert_type='success'
+        )
+        
+        generator.add_paragraph("<strong>Rationale:</strong>")
+        rationale = [
+            f"<strong>Margin Optimization:</strong> {recommended['margin_pct']:.1f}% margin (vs {current_model['margin_pct']:.1f}% current)",
+            f"<strong>Revenue Growth:</strong> ${recommended['total_revenue'] - current_model['total_revenue']:+,.2f}/month",
+            f"<strong>Risk Reduction:</strong> {recommended['negative_margin_customers']} unprofitable customers (vs {current_model['negative_margin_customers']} current)",
+            "<strong>Customer Fairness:</strong> Usage-aligned pricing reduces subsidization"
+        ]
+        generator.add_list(rationale, ordered=True)
+        
+        # Implementation Roadmap
+        generator.add_section("Implementation Roadmap", level=3)
+        
+        generator.add_paragraph("<strong>Phase 1 (Month 1-2): Preparation</strong>")
+        phase1 = [
+            "Communicate pricing changes to customers (60-day notice)",
+            "Update billing systems and infrastructure",
+            "Create customer migration guides",
+            "Set up usage tracking and alerts"
+        ]
+        generator.add_list(phase1, ordered=False)
+        
+        generator.add_paragraph("<strong>Phase 2 (Month 3): Soft Launch</strong>")
+        phase2 = [
+            "Offer new pricing to new customers only",
+            "Grandfather existing customers with opt-in option",
+            "Monitor adoption and feedback",
+            "Adjust pricing parameters if needed"
+        ]
+        generator.add_list(phase2, ordered=False)
+        
+        generator.add_paragraph("<strong>Phase 3 (Month 4-6): Full Migration</strong>")
+        phase3 = [
+            "Migrate existing customers in waves",
+            "Provide migration incentives (e.g., first month discount)",
+            "Monitor churn and customer satisfaction",
+            "Optimize based on real-world data"
+        ]
+        generator.add_list(phase3, ordered=False)
+        
+        # Success Metrics
+        generator.add_section("Success Metrics", level=3)
+        metrics = [
+            f"<strong>Target Margin:</strong> >{recommended['margin_pct']:.0f}%",
+            f"<strong>Target Revenue:</strong> ${recommended['total_revenue']:,.2f}/month",
+            "<strong>Churn Rate:</strong> <5% during migration",
+            "<strong>Customer Satisfaction:</strong> >80% approval",
+            "<strong>Unprofitable Customers:</strong> <5%"
+        ]
+        generator.add_list(metrics, ordered=False)
+        
+        # Save HTML report
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        generator.save(output_file)
+        print(f"✓ Pricing Strategy HTML report generated: {output_file}")
 
 
 def main():
     """Main execution"""
     import os
     os.makedirs('reports', exist_ok=True)
+    os.makedirs('reports/html', exist_ok=True)
     
     analyzer = PricingStrategySimulator()
+    
+    # Generate markdown report
     analyzer.generate_report()
+    
+    # Generate HTML report if requested
+    if os.environ.get('GENERATE_HTML'):
+        analyzer.generate_html_report()
 
 
 if __name__ == '__main__':

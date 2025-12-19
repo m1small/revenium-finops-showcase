@@ -27,9 +27,12 @@ This creates 30 days of AI call data for 100 customers across multiple providers
 python run_all_analyzers.py
 ```
 
-This executes all 8 analyzers and generates comprehensive reports.
+This executes all 8 analyzers and generates comprehensive reports in both Markdown and HTML formats.
 
-**Output**: 8 markdown reports in `reports/` directory
+**Output**:
+- 8 markdown reports in `reports/` directory
+- 8 HTML reports in `reports/html/` directory
+- Manifest file for web viewer
 
 ### 3. Run Individual Analyzers
 
@@ -49,12 +52,24 @@ python analyzers/ubr/pricing.py
 python analyzers/ubr/features.py
 ```
 
+### 4. View HTML Reports (NEW!)
+
+```bash
+cd ../viewer
+python3 serve.py
+```
+
+Then open your browser to **http://localhost:8000/** to view the interactive HTML reports with a modern web interface.
+
 ## Project Structure
 
 ```
 src/
 ├── simulator.py                    # Generate AI call data
 ├── run_all_analyzers.py           # Run all analyzers at once
+├── utils/                          # NEW: Utility modules
+│   ├── html_generator.py          # HTML report generation
+│   └── manifest_generator.py      # Report manifest creation
 ├── analyzers/
 │   ├── finops/
 │   │   ├── understanding.py       # Cost allocation & forecasting
@@ -69,14 +84,14 @@ src/
 ├── data/
 │   └── simulated_calls.csv       # Generated usage data
 └── reports/
-    ├── finops_understanding.md
-    ├── finops_performance.md
-    ├── finops_realtime.md
-    ├── finops_optimization.md
-    ├── finops_alignment.md
-    ├── customer_profitability.md
-    ├── pricing_strategy.md
-    └── feature_economics.md
+    ├── [markdown reports]         # Traditional MD reports
+    └── html/                      # NEW: HTML reports
+        ├── manifest.json          # Report metadata
+        └── [html reports]         # Styled HTML reports
+
+viewer/                             # NEW: Web-based report viewer
+├── index.html                     # Interactive viewer frontend
+└── serve.py                       # Simple HTTP server
 ```
 
 ## Generated Reports
@@ -197,11 +212,23 @@ SUBSCRIPTION_TIERS = {
 }
 ```
 
+## HTML Reports (NEW!)
+
+The showcase now generates beautiful HTML reports with:
+
+- **Modern Design**: Clean, professional styling with system fonts
+- **Interactive Viewer**: Web-based navigation between reports
+- **Responsive Layout**: Works on desktop, tablet, and mobile
+- **Print-Friendly**: Optimized for printing
+- **No Dependencies**: All CSS/JS embedded
+
+See [`docs/HTML_REPORTS_GUIDE.md`](../docs/HTML_REPORTS_GUIDE.md) for detailed documentation.
+
 ## Notes
 
 - All data is simulated - no real API calls are made
 - No database required - uses CSV files
-- Reports are markdown files for easy sharing
+- Reports available in both Markdown and HTML formats
 - Each script is self-contained and <300 lines
 - Focus on business insights over technical implementation
 

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinOps: Understanding Usage & Cost - Revenium FinOps</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #ffffff;
+            color: #1f2937;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .report-header {
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .report-meta {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .report-description {
+            color: #4b5563;
+            margin-top: 0.5rem;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: #1f2937;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
+        }
+        
+        h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+        
+        p {
+            margin: 1rem 0;
+            color: #4b5563;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .metric-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .metric-trend {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .metric-trend.positive {
+            color: #16a34a;
+        }
+        
+        .metric-trend.negative {
+            color: #dc2626;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        caption {
+            caption-side: top;
+            padding: 0.75rem;
+            font-weight: 600;
+            text-align: left;
+            color: #1f2937;
+        }
+        
+        th {
+            background: #f9fafb;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #1f2937;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 0.875rem;
+        }
+        
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.875rem;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+        
+        .alert-info {
+            background: #eff6ff;
+            border-color: #2563eb;
+            color: #1e40af;
+        }
+        
+        .alert-warning {
+            background: #fff7ed;
+            border-color: #ea580c;
+            color: #c2410c;
+        }
+        
+        .alert-success {
+            background: #f0fdf4;
+            border-color: #16a34a;
+            color: #15803d;
+        }
+        
+        .alert-danger {
+            background: #fef2f2;
+            border-color: #dc2626;
+            color: #b91c1c;
+        }
+        
+        ul, ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+        
+        li {
+            margin: 0.5rem 0;
+            color: #4b5563;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            h2 {
+                font-size: 1.25rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 0.75rem;
+            }
+            
+            th, td {
+                padding: 0.5rem;
+            }
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .no-print {
+                display: none;
+            }
+            
+            .report-container {
+                max-width: 100%;
+            }
+            
+            h2 {
+                page-break-after: avoid;
+            }
+            
+            table {
+                page-break-inside: avoid;
+            }
+        }
+        </style>
+</head>
+<body>
+    <div class="report-container">
+        <header class="report-header">
+            <h1>FinOps: Understanding Usage & Cost</h1>
+            <div class="report-meta">
+                Generated: 2025-12-18 22:27:30 | Category: FinOps Domain
+            </div>
+            <div class="report-description">Cost allocation, spend breakdowns, and forecasting analysis</div>
+        </header>
+        
+        <main>
+<h2>Executive Summary</h2>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Total AI Spend (30 days)</div>
+    <div class="metric-value">$8,669.89</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Total API Calls</div>
+    <div class="metric-value">224,072</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Average Cost per Call</div>
+    <div class="metric-value">$0.0387</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">30-Day Forecast</div>
+    <div class="metric-value">$8,669.89</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Forecast with Growth</div>
+    <div class="metric-value">$8,638.86</div>
+    <div class="metric-trend negative">-0.4%</div>
+  </div>
+</div>
+<h2>Spend by Provider</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Provider</th>
+      <th>Total Spend</th>
+      <th>% of Total</th>
+      <th>Avg per Call</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Openai</td>
+      <td>$4,320.66</td>
+      <td>49.8%</td>
+      <td>$0.0577</td>
+    </tr>
+    <tr>
+      <td>Anthropic</td>
+      <td>$3,217.25</td>
+      <td>37.1%</td>
+      <td>$0.0432</td>
+    </tr>
+    <tr>
+      <td>Bedrock</td>
+      <td>$1,131.98</td>
+      <td>13.1%</td>
+      <td>$0.0151</td>
+    </tr>
+  </tbody>
+</table>
+<h2>Spend by Model</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Total Spend</th>
+      <th>% of Total</th>
+      <th>Calls</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>gpt-4</td>
+      <td>$3,045.66</td>
+      <td>35.1%</td>
+      <td>37,459</td>
+    </tr>
+    <tr>
+      <td>claude-opus-4</td>
+      <td>$2,677.98</td>
+      <td>30.9%</td>
+      <td>37,267</td>
+    </tr>
+    <tr>
+      <td>gpt-4-turbo</td>
+      <td>$1,274.99</td>
+      <td>14.7%</td>
+      <td>37,381</td>
+    </tr>
+    <tr>
+      <td>claude-v2</td>
+      <td>$1,031.03</td>
+      <td>11.9%</td>
+      <td>37,709</td>
+    </tr>
+    <tr>
+      <td>claude-sonnet-4</td>
+      <td>$539.27</td>
+      <td>6.2%</td>
+      <td>37,244</td>
+    </tr>
+    <tr>
+      <td>claude-instant</td>
+      <td>$100.96</td>
+      <td>1.2%</td>
+      <td>37,012</td>
+    </tr>
+  </tbody>
+</table>
+<h2>Top 10 Customers by Spend</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Customer ID</th>
+      <th>Total Spend</th>
+      <th>Calls</th>
+      <th>Avg per Call</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>cust-0076</td>
+      <td>$599.44</td>
+      <td>15,512</td>
+      <td>$0.0386</td>
+    </tr>
+    <tr>
+      <td>cust-0023</td>
+      <td>$569.26</td>
+      <td>14,764</td>
+      <td>$0.0386</td>
+    </tr>
+    <tr>
+      <td>cust-0063</td>
+      <td>$526.91</td>
+      <td>13,643</td>
+      <td>$0.0386</td>
+    </tr>
+    <tr>
+      <td>cust-0032</td>
+      <td>$525.67</td>
+      <td>13,517</td>
+      <td>$0.0389</td>
+    </tr>
+    <tr>
+      <td>cust-0007</td>
+      <td>$524.70</td>
+      <td>13,696</td>
+      <td>$0.0383</td>
+    </tr>
+    <tr>
+      <td>cust-0092</td>
+      <td>$490.02</td>
+      <td>12,525</td>
+      <td>$0.0391</td>
+    </tr>
+    <tr>
+      <td>cust-0093</td>
+      <td>$460.25</td>
+      <td>11,868</td>
+      <td>$0.0388</td>
+    </tr>
+    <tr>
+      <td>cust-0039</td>
+      <td>$408.34</td>
+      <td>10,549</td>
+      <td>$0.0387</td>
+    </tr>
+    <tr>
+      <td>cust-0002</td>
+      <td>$369.53</td>
+      <td>9,422</td>
+      <td>$0.0392</td>
+    </tr>
+    <tr>
+      <td>cust-0088</td>
+      <td>$342.77</td>
+      <td>8,713</td>
+      <td>$0.0393</td>
+    </tr>
+  </tbody>
+</table>
+<h2>Cost Allocation Hierarchy</h2>
+<h3>org-alpha ($3,504.94)</h3>
+<ul>
+  <li><strong>product-doc-analyzer</strong>: $2,161.85 (17 customers)</li>
+  <li><strong>product-ai-chat</strong>: $1,026.54 (10 customers)</li>
+  <li><strong>product-code-assistant</strong>: $316.55 (10 customers)</li>
+</ul>
+<h3>org-beta ($2,469.20)</h3>
+<ul>
+  <li><strong>product-doc-analyzer</strong>: $1,018.07 (12 customers)</li>
+  <li><strong>product-ai-chat</strong>: $774.57 (7 customers)</li>
+  <li><strong>product-code-assistant</strong>: $676.56 (8 customers)</li>
+</ul>
+<h3>org-gamma ($2,695.75)</h3>
+<ul>
+  <li><strong>product-code-assistant</strong>: $1,385.53 (13 customers)</li>
+  <li><strong>product-doc-analyzer</strong>: $686.30 (11 customers)</li>
+  <li><strong>product-ai-chat</strong>: $623.93 (12 customers)</li>
+</ul>
+<h2>Token Efficiency Metrics</h2>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Total Input Tokens</div>
+    <div class="metric-value">293,863,808</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Total Output Tokens</div>
+    <div class="metric-value">156,848,815</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Total Tokens</div>
+    <div class="metric-value">450,712,623</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Avg Cost per 1K Tokens</div>
+    <div class="metric-value">$0.0192</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Input/Output Ratio</div>
+    <div class="metric-value">1.87</div>
+  </div>
+</div>
+<h2>30-Day Cost Forecast</h2>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Current Daily Average</div>
+    <div class="metric-value">$289.00</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Linear Forecast (30 days)</div>
+    <div class="metric-value">$8,669.89</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Growth Rate</div>
+    <div class="metric-value">-0.4%</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Forecast with Growth</div>
+    <div class="metric-value">$8,638.86</div>
+  </div>
+</div>
+<h2>Key Insights</h2>
+<ol>
+  <li><strong>Openai</strong> accounts for 49.8% of total spend ($4,320.66)</li>
+  <li>Top 10 customers represent 55.6% of total spend ($4,816.90)</li>
+  <li>Cost per call ranges from $0.0003 to $0.2090 (variance indicates optimization opportunities)</li>
+</ol>
+<h2>Recommendations</h2>
+<ol>
+  <li><strong>Cost Allocation</strong>: Implement chargeback model based on organization/product hierarchy</li>
+  <li><strong>Customer Monitoring</strong>: Set up alerts for top 10 customers (70% of spend)</li>
+  <li><strong>Forecasting</strong>: Review monthly to adjust capacity planning</li>
+  <li><strong>Budget Planning</strong>: Allocate $9,502.75/month (10% buffer)</li>
+</ol>
+
+        </main>
+    </div>
+</body>
+</html>

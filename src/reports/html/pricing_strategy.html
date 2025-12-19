@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing Strategy Analysis - Revenium FinOps</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #ffffff;
+            color: #1f2937;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .report-header {
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .report-meta {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .report-description {
+            color: #4b5563;
+            margin-top: 0.5rem;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: #1f2937;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
+        }
+        
+        h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+        
+        p {
+            margin: 1rem 0;
+            color: #4b5563;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .metric-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .metric-trend {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .metric-trend.positive {
+            color: #16a34a;
+        }
+        
+        .metric-trend.negative {
+            color: #dc2626;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        caption {
+            caption-side: top;
+            padding: 0.75rem;
+            font-weight: 600;
+            text-align: left;
+            color: #1f2937;
+        }
+        
+        th {
+            background: #f9fafb;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #1f2937;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 0.875rem;
+        }
+        
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.875rem;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+        
+        .alert-info {
+            background: #eff6ff;
+            border-color: #2563eb;
+            color: #1e40af;
+        }
+        
+        .alert-warning {
+            background: #fff7ed;
+            border-color: #ea580c;
+            color: #c2410c;
+        }
+        
+        .alert-success {
+            background: #f0fdf4;
+            border-color: #16a34a;
+            color: #15803d;
+        }
+        
+        .alert-danger {
+            background: #fef2f2;
+            border-color: #dc2626;
+            color: #b91c1c;
+        }
+        
+        ul, ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+        
+        li {
+            margin: 0.5rem 0;
+            color: #4b5563;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            h2 {
+                font-size: 1.25rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 0.75rem;
+            }
+            
+            th, td {
+                padding: 0.5rem;
+            }
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .no-print {
+                display: none;
+            }
+            
+            .report-container {
+                max-width: 100%;
+            }
+            
+            h2 {
+                page-break-after: avoid;
+            }
+            
+            table {
+                page-break-inside: avoid;
+            }
+        }
+        </style>
+</head>
+<body>
+    <div class="report-container">
+        <header class="report-header">
+            <h1>Pricing Strategy Analysis</h1>
+            <div class="report-meta">
+                Generated: 2025-12-18 22:34:28 | Category: Usage-Based Revenue
+            </div>
+            <div class="report-description">Comparison of pricing models to optimize revenue and margins</div>
+        </header>
+        
+        <main>
+<h2>Executive Summary</h2>
+<p>Comparison of four pricing models to optimize revenue and margins while maintaining customer satisfaction.</p>
+<h2>Pricing Model Comparison</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Total Revenue</th>
+      <th>Total Cost</th>
+      <th>Margin</th>
+      <th>Margin %</th>
+      <th>Avg Rev/Customer</th>
+      <th>Unprofitable Customers</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Flat Pricing</td>
+      <td>$10,610.00</td>
+      <td>$8,669.89</td>
+      <td>$1,940.11</td>
+      <td>18.3%</td>
+      <td>$106.10</td>
+      <td>18</td>
+    </tr>
+    <tr>
+      <td>Tiered Pricing</td>
+      <td>$28,416.51</td>
+      <td>$8,669.89</td>
+      <td>$19,746.62</td>
+      <td>69.5%</td>
+      <td>$284.17</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>Pure Usage-Based</td>
+      <td>$21,674.73</td>
+      <td>$8,669.89</td>
+      <td>$13,004.84</td>
+      <td>60.0%</td>
+      <td>$216.75</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>Hybrid Pricing</td>
+      <td>$19,223.54</td>
+      <td>$8,669.89</td>
+      <td>$10,553.65</td>
+      <td>54.9%</td>
+      <td>$192.24</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Highest Total Margin</div>
+    <div class="metric-value">Tiered Pricing: $19,746.62</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Highest Margin %</div>
+    <div class="metric-value">Tiered Pricing: 69.5%</div>
+  </div>
+</div>
+<h2>Model Details</h2>
+<h3>1. Flat Pricing</h3>
+<p><strong>Structure:</strong> Fixed monthly fee per tier</p>
+<table>
+  <thead>
+    <tr>
+      <th>Tier</th>
+      <th>Monthly Fee</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Starter</td>
+      <td>$29</td>
+    </tr>
+    <tr>
+      <td>Pro</td>
+      <td>$99</td>
+    </tr>
+    <tr>
+      <td>Enterprise</td>
+      <td>$299</td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Pros:</strong> Simple, predictable revenue<br><strong>Cons:</strong> 18 unprofitable customers, no usage alignment</p>
+<h3>2. Tiered Pricing</h3>
+<p><strong>Structure:</strong> Base fee + included calls + overage charges</p>
+<table>
+  <thead>
+    <tr>
+      <th>Tier</th>
+      <th>Base Fee</th>
+      <th>Included Calls</th>
+      <th>Overage Rate</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Starter</td>
+      <td>$29</td>
+      <td>100</td>
+      <td>$0.15/call</td>
+    </tr>
+    <tr>
+      <td>Pro</td>
+      <td>$99</td>
+      <td>500</td>
+      <td>$0.12/call</td>
+    </tr>
+    <tr>
+      <td>Enterprise</td>
+      <td>$299</td>
+      <td>2,000</td>
+      <td>$0.10/call</td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Pros:</strong> Fair usage-based component, protects against heavy users<br><strong>Cons:</strong> More complex billing, potential customer friction on overages</p>
+<h3>3. Pure Usage-Based</h3>
+<p><strong>Structure:</strong> Pay per use only (2.5x cost markup)</p>
+<p><strong>Pros:</strong> Perfect cost alignment, no unprofitable customers<br><strong>Cons:</strong> Unpredictable revenue, may deter light users, highest total cost to customers</p>
+<h3>4. Hybrid Pricing</h3>
+<p><strong>Structure:</strong> Reduced base fee + cost-plus pricing</p>
+<table>
+  <thead>
+    <tr>
+      <th>Tier</th>
+      <th>Base Fee</th>
+      <th>Cost Multiplier</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Starter</td>
+      <td>$19</td>
+      <td>2.0x (100% markup)</td>
+    </tr>
+    <tr>
+      <td>Pro</td>
+      <td>$49</td>
+      <td>1.8x (80% markup)</td>
+    </tr>
+    <tr>
+      <td>Enterprise</td>
+      <td>$149</td>
+      <td>1.5x (50% markup)</td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Pros:</strong> Balanced approach, predictable base + fair usage component<br><strong>Cons:</strong> Requires cost transparency, moderate complexity</p>
+<h2>Customer Segment Impact Analysis</h2>
+<h3>Heavy Usage Customers</h3>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Count</div>
+    <div class="metric-value">30 customers</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Avg Calls</div>
+    <div class="metric-value">6670 calls/month</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Avg Cost to Serve</div>
+    <div class="metric-value">$258.22/month</div>
+  </div>
+</div>
+<p><strong>Average Revenue per Customer by Model:</strong></p>
+<ul>
+  <li><strong>Current:</strong> $232.33</li>
+  <li><strong>Tiered:</strong> $766.04 (+229.7%)</li>
+  <li><strong>Pure Usage:</strong> $645.54 (+177.9%)</li>
+  <li><strong>Hybrid:</strong> $513.84 (+121.2%)</li>
+</ul>
+<h3>Light Usage Customers</h3>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Count</div>
+    <div class="metric-value">15 customers</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Avg Calls</div>
+    <div class="metric-value">175 calls/month</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Avg Cost to Serve</div>
+    <div class="metric-value">$6.94/month</div>
+  </div>
+</div>
+<p><strong>Average Revenue per Customer by Model:</strong></p>
+<ul>
+  <li><strong>Current:</strong> $43.00</li>
+  <li><strong>Tiered:</strong> $52.30 (+21.6%)</li>
+  <li><strong>Pure Usage:</strong> $17.35 (-59.7%)</li>
+  <li><strong>Hybrid:</strong> $38.61 (-10.2%)</li>
+</ul>
+<h3>Medium Usage Customers</h3>
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Count</div>
+    <div class="metric-value">55 customers</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Avg Calls</div>
+    <div class="metric-value">388 calls/month</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Avg Cost to Serve</div>
+    <div class="metric-value">$14.90/month</div>
+  </div>
+</div>
+<p><strong>Average Revenue per Customer by Model:</strong></p>
+<ul>
+  <li><strong>Current:</strong> $54.45</li>
+  <li><strong>Tiered:</strong> $84.56 (+55.3%)</li>
+  <li><strong>Pure Usage:</strong> $37.24 (-31.6%)</li>
+  <li><strong>Hybrid:</strong> $58.72 (+7.8%)</li>
+</ul>
+<h2>Revenue Impact Projection</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>Current</th>
+      <th>Tiered</th>
+      <th>Pure Usage</th>
+      <th>Hybrid</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Monthly Revenue</td>
+      <td>$10,610.00</td>
+      <td>$28,416.51 (+17,807)</td>
+      <td>$21,674.73 (+11,065)</td>
+      <td>$19,223.54 (+8,614)</td>
+    </tr>
+    <tr>
+      <td>Monthly Margin</td>
+      <td>$1,940.11</td>
+      <td>$19,746.62 (+17,807)</td>
+      <td>$13,004.84 (+11,065)</td>
+      <td>$10,553.65 (+8,614)</td>
+    </tr>
+    <tr>
+      <td>Margin %</td>
+      <td>18.3%</td>
+      <td>69.5%</td>
+      <td>60.0%</td>
+      <td>54.9%</td>
+    </tr>
+    <tr>
+      <td>Unprofitable Customers</td>
+      <td>18</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<h3>Annual Impact</h3>
+<ul>
+  <li><strong>Tiered Pricing:</strong> $+213,678.12 annual margin change</li>
+  <li><strong>Pure Usage-Based:</strong> $+132,776.71 annual margin change</li>
+  <li><strong>Hybrid Pricing:</strong> $+103,362.45 annual margin change</li>
+</ul>
+<h2>Recommendation</h2>
+<h3>Recommended Model: Tiered Pricing</h3>
+<div class="alert alert-success"><strong>Recommended:</strong> Tiered Pricing offers the best balance of margin optimization (69.5%), revenue growth ($+17,806.51/month), and risk reduction (0 unprofitable customers).</div>
+<p><strong>Rationale:</strong></p>
+<ol>
+  <li><strong>Margin Optimization:</strong> 69.5% margin (vs 18.3% current)</li>
+  <li><strong>Revenue Growth:</strong> $+17,806.51/month</li>
+  <li><strong>Risk Reduction:</strong> 0 unprofitable customers (vs 18 current)</li>
+  <li><strong>Customer Fairness:</strong> Usage-aligned pricing reduces subsidization</li>
+</ol>
+<h3>Implementation Roadmap</h3>
+<p><strong>Phase 1 (Month 1-2): Preparation</strong></p>
+<ul>
+  <li>Communicate pricing changes to customers (60-day notice)</li>
+  <li>Update billing systems and infrastructure</li>
+  <li>Create customer migration guides</li>
+  <li>Set up usage tracking and alerts</li>
+</ul>
+<p><strong>Phase 2 (Month 3): Soft Launch</strong></p>
+<ul>
+  <li>Offer new pricing to new customers only</li>
+  <li>Grandfather existing customers with opt-in option</li>
+  <li>Monitor adoption and feedback</li>
+  <li>Adjust pricing parameters if needed</li>
+</ul>
+<p><strong>Phase 3 (Month 4-6): Full Migration</strong></p>
+<ul>
+  <li>Migrate existing customers in waves</li>
+  <li>Provide migration incentives (e.g., first month discount)</li>
+  <li>Monitor churn and customer satisfaction</li>
+  <li>Optimize based on real-world data</li>
+</ul>
+<h3>Success Metrics</h3>
+<ul>
+  <li><strong>Target Margin:</strong> >69%</li>
+  <li><strong>Target Revenue:</strong> $28,416.51/month</li>
+  <li><strong>Churn Rate:</strong> <5% during migration</li>
+  <li><strong>Customer Satisfaction:</strong> >80% approval</li>
+  <li><strong>Unprofitable Customers:</strong> <5%</li>
+</ul>
+
+        </main>
+    </div>
+</body>
+</html>

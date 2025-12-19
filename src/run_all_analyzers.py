@@ -7,6 +7,9 @@ import os
 import sys
 from datetime import datetime
 
+# Set environment variable to enable HTML generation
+os.environ['GENERATE_HTML'] = '1'
+
 
 def run_analyzer(script_path: str, name: str) -> bool:
     """Run an analyzer script and report status"""
@@ -115,8 +118,49 @@ Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         else:
             print(f"✗ {report} (not found)")
     
+    # Generate HTML reports list
+    html_reports = [
+        'reports/html/finops_understanding.html',
+        'reports/html/finops_performance.html',
+        'reports/html/finops_realtime.html',
+        'reports/html/finops_optimization.html',
+        'reports/html/finops_alignment.html',
+        'reports/html/customer_profitability.html',
+        'reports/html/pricing_strategy.html',
+        'reports/html/feature_economics.html'
+    ]
+    
+    print(f"\n{'='*60}")
+    print("HTML Reports:")
+    print(f"{'='*60}\n")
+    
+    for report in html_reports:
+        if os.path.exists(report):
+            size = os.path.getsize(report)
+            print(f"✓ {report} ({size:,} bytes)")
+        else:
+            print(f"✗ {report} (not found)")
+    
+    # Generate manifest
+    print(f"\n{'='*60}")
+    print("Generating Manifest:")
+    print(f"{'='*60}\n")
+    
+    try:
+        from utils.manifest_generator import create_default_manifest
+        manifest = create_default_manifest()
+        manifest.save()
+    except Exception as e:
+        print(f"⚠️  Warning: Could not generate manifest: {e}")
+    
     print(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("\n🎉 All analyses complete! Review reports in the reports/ directory.\n")
+    print("\n🎉 All analyses complete!")
+    print("\n📊 Markdown reports: reports/")
+    print("🌐 HTML reports: reports/html/")
+    print("\nTo view HTML reports:")
+    print("  cd viewer")
+    print("  python serve.py")
+    print("  Open http://localhost:8000/\n")
 
 
 if __name__ == '__main__':
