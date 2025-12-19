@@ -27,8 +27,10 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 def main():
     """Start the HTTP server"""
-    # Change to viewer directory
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    # Change to project root directory (parent of viewer)
+    viewer_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(viewer_dir)
+    os.chdir(project_root)
     
     print("=" * 70)
     print("🌐 REVENIUM FINOPS SHOWCASE - REPORT VIEWER")
@@ -36,7 +38,7 @@ def main():
     print()
     print(f"🚀 Starting server on port {PORT}...")
     print()
-    print(f"📊 Open your browser to: http://localhost:{PORT}")
+    print(f"📊 Open your browser to: http://localhost:{PORT}/viewer/index.html")
     print()
     print("Press Ctrl+C to stop the server")
     print("=" * 70)

@@ -91,7 +91,9 @@ Press Ctrl+C to stop the server
 ======================================================================
 ```
 
-Then open your browser to **http://localhost:8000** and explore the reports!
+Then open your browser to **http://localhost:8000/viewer/index.html** and explore the reports!
+
+**Note**: Make sure to include `/viewer/index.html` in the URL to access the report viewer interface.
 
 ## 📚 What's Next?
 

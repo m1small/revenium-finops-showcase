@@ -14,7 +14,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 # Import analyzers
 from analyzers.finops.understanding import UnderstandingAnalyzer
+from analyzers.finops.performance import PerformanceAnalyzer
+from analyzers.finops.realtime import RealtimeAnalyzer
+from analyzers.finops.optimization import OptimizationAnalyzer
+from analyzers.finops.alignment import AlignmentAnalyzer
 from analyzers.ubr.profitability import CustomerProfitabilityAnalyzer
+from analyzers.ubr.pricing import PricingAnalyzer
+from analyzers.ubr.features import FeatureAnalyzer
 
 
 def ensure_data_exists():
@@ -46,7 +52,13 @@ def run_all_analyzers():
     # List of analyzers to run
     analyzers = [
         ("FinOps: Understanding Usage & Cost", UnderstandingAnalyzer),
+        ("FinOps: Performance Tracking", PerformanceAnalyzer),
+        ("FinOps: Real-Time Decision Making", RealtimeAnalyzer),
+        ("FinOps: Rate Optimization", OptimizationAnalyzer),
+        ("FinOps: Organizational Alignment", AlignmentAnalyzer),
         ("UBR: Customer Profitability", CustomerProfitabilityAnalyzer),
+        ("UBR: Pricing Strategy", PricingAnalyzer),
+        ("UBR: Feature Economics", FeatureAnalyzer),
     ]
     
     results = []

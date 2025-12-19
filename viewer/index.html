@@ -242,7 +242,7 @@
         // Load and display reports from manifest
         async function loadReports() {
             try {
-                const response = await fetch('../src/reports/html/manifest.json');
+                const response = await fetch('src/reports/html/manifest.json');
                 
                 if (!response.ok) {
                     throw new Error('Manifest not found. Please run the analyzers first.');
@@ -310,7 +310,7 @@ python3 run_all_analyzers.py</pre>
 
                 reports.forEach(report => {
                     html += `
-                        <a href="../src/reports/html/${report.filename}" class="report-card" target="_blank">
+                        <a href="src/reports/html/${report.filename}" class="report-card" target="_blank">
                             <div class="icon">${getReportIcon(report.title)}</div>
                             <div class="category">${category}</div>
                             <h3>${report.title}</h3>
