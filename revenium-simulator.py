@@ -148,6 +148,18 @@ class Simulator:
         self.reconciliation = Reconciliation()
         self.running = False
         self.call_count = 0
+    
+    def print_educational_header(self):
+        """Print educational context before simulation starts"""
+        print(f"\n{Colors.BOLD}{Colors.YELLOW}How This Works:{Colors.END}")
+        print(f"  1. {Colors.CYAN}AI API calls{Colors.END} are made to various providers")
+        print(f"  2. {Colors.MAGENTA}Revenium middleware{Colors.END} tracks calls for billing")
+        print(f"  3. {Colors.MAGENTA}CloudWatch{Colors.END} independently logs all calls")
+        print(f"  4. {Colors.GREEN}Reconciliation{Colors.END} compares both systems weekly")
+        print(f"\n{Colors.BOLD}Watch for:{Colors.END}")
+        print(f"  • {Colors.GREEN}✓ Tracked{Colors.END} = Revenium successfully captured the call")
+        print(f"  • {Colors.RED}✗ Missed{Colors.END} = Revenium failed (CloudWatch still has it)")
+        print(f"  • Variance should stay under 2% for accurate billing\n")
         
     def simulate_ai_call(self):
         """Simulate a single AI API call"""
@@ -179,14 +191,20 @@ class Simulator:
         """Run simulation for specified duration"""
         print(f"\n{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.END}")
         print(f"{Colors.BOLD}{Colors.BLUE}Revenium Implementation Simulator{Colors.END}")
-        print(f"{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.END}\n")
+        print(f"{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.END}")
+        
+        self.print_educational_header()
         
         print(f"{Colors.CYAN}Configuration:{Colors.END}")
         print(f"  Duration: {duration_seconds} seconds")
         print(f"  Rate: {calls_per_second} calls/second")
-        print(f"  Revenium failure rate: {self.revenium.failure_rate*100}%\n")
+        print(f"  Revenium failure rate: {self.revenium.failure_rate*100}%")
         
-        print(f"{Colors.YELLOW}Starting simulation...{Colors.END}\n")
+        if self.revenium.failure_rate > 0:
+            print(f"\n{Colors.YELLOW}Note: Failure rate is set to {self.revenium.failure_rate*100}%")
+            print(f"This simulates real-world scenarios where middleware might miss calls{Colors.END}")
+        
+        print(f"\n{Colors.YELLOW}Starting simulation...{Colors.END}\n")
         
         self.running = True
         start_time = time.time()
@@ -210,6 +228,140 @@ class Simulator:
         
         self.running = False
         self.print_results()
+    
+    def print_insights(self, report: Dict):
+        """Print educational insights based on simulation results"""
+        print(f"\n{Colors.BOLD}{Colors.CYAN}{'='*70}{Colors.END}")
+        print(f"{Colors.BOLD}{Colors.CYAN}What This Means{Colors.END}")
+        print(f"{Colors.BOLD}{Colors.CYAN}{'='*70}{Colors.END}\n")
+        
+        variance = report['variance_pct']
+        rev_calls = report['revenium_calls']
+        cw_calls = report['cloudwatch_calls']
+        
+        # Variance insights
+        if variance < 1.0:
+            print(f"{Colors.GREEN}✓ Excellent Tracking:{Colors.END}")
+            print(f"  Variance of {variance:.2f}% is well within acceptable limits.")
+            print(f"  Revenium is accurately capturing nearly all AI API calls.")
+        elif variance < 2.0:
+            print(f"{Colors.GREEN}✓ Good Tracking:{Colors.END}")
+            print(f"  Variance of {variance:.2f}% is acceptable (under 2% threshold).")
+            print(f"  Minor discrepancies are normal in distributed systems.")
+        else:
+            print(f"{Colors.RED}⚠ High Variance:{Colors.END}")
+            print(f"  Variance of {variance:.2f}% exceeds the 2% threshold.")
+            print(f"  This would trigger investigation in production.")
+            print(f"\n  {Colors.YELLOW}Possible causes:{Colors.END}")
+            print(f"    • Middleware performance issues")
+            print(f"    • Network connectivity problems")
+            print(f"    • High system load")
+        
+        # Dual-track value
+        print(f"\n{Colors.BOLD}Why Dual-Track Matters:{Colors.END}")
+        missed_calls = cw_calls - rev_calls
+        if missed_calls > 0:
+            missed_cost = (report['cloudwatch_cost'] - report['revenium_cost'])
+            print(f"  • Revenium missed {missed_calls} calls (${missed_cost:.4f})")
+            print(f"  • CloudWatch caught them all - no revenue lost!")
+            print(f"  • Weekly reconciliation ensures accurate billing")
+        else:
+            print(f"  • Perfect tracking - both systems agree")
+            print(f"  • CloudWatch provides validation and backup")
+            print(f"  • Confidence in billing accuracy")
+        
+        # Best practices
+        print(f"\n{Colors.BOLD}Production Best Practices:{Colors.END}")
+        print(f"  1. Monitor variance trends over time")
+        print(f"  2. Set alerts for variance > 2%")
+        print(f"  3. Run reconciliation weekly")
+        print(f"  4. Investigate any sustained high variance")
+        print(f"  5. Use CloudWatch data for billing disputes")
+        
+        print(f"\n{Colors.CYAN}{'='*70}{Colors.END}\n")
+    
+    def print_best_practice_report(self, report: Dict, rev_stats: Dict):
+        """Print a sample best practice report"""
+        print(f"{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.END}")
+        print(f"{Colors.BOLD}{Colors.BLUE}Sample Best Practice Report{Colors.END}")
+        print(f"{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.END}\n")
+        
+        print(f"{Colors.BOLD}Weekly Reconciliation Report{Colors.END}")
+        print(f"Report Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Period: Week of {(datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')}\n")
+        
+        # Executive Summary
+        print(f"{Colors.BOLD}{Colors.MAGENTA}Executive Summary:{Colors.END}")
+        status_icon = "✓" if report['status'] == 'PASS' else "✗"
+        status_color = Colors.GREEN if report['status'] == 'PASS' else Colors.RED
+        print(f"  Status: {status_color}{status_icon} {report['status']}{Colors.END}")
+        print(f"  Variance: {report['variance_pct']:.2f}% (threshold: 2.0%)")
+        print(f"  Total API Calls: {report['cloudwatch_calls']:,}")
+        print(f"  Total Cost: ${report['cloudwatch_cost']:.2f}")
+        
+        # Tracking Accuracy
+        print(f"\n{Colors.BOLD}{Colors.MAGENTA}Tracking Accuracy:{Colors.END}")
+        tracking_rate = (report['revenium_calls'] / report['cloudwatch_calls'] * 100) if report['cloudwatch_calls'] > 0 else 0
+        print(f"  Revenium Captured: {report['revenium_calls']:,} calls ({tracking_rate:.2f}%)")
+        print(f"  CloudWatch Logged: {report['cloudwatch_calls']:,} calls (100%)")
+        print(f"  Missed Calls: {report['cloudwatch_calls'] - report['revenium_calls']:,}")
+        
+        # Financial Impact
+        print(f"\n{Colors.BOLD}{Colors.MAGENTA}Financial Impact:{Colors.END}")
+        cost_diff = report['cloudwatch_cost'] - report['revenium_cost']
+        print(f"  Revenium Tracked Cost: ${report['revenium_cost']:.2f}")
+        print(f"  CloudWatch Total Cost: ${report['cloudwatch_cost']:.2f}")
+        if cost_diff > 0:
+            print(f"  {Colors.YELLOW}Potential Revenue Gap: ${cost_diff:.2f}{Colors.END}")
+            print(f"  {Colors.GREEN}Protected by CloudWatch backup{Colors.END}")
+        else:
+            print(f"  {Colors.GREEN}No revenue gap detected{Colors.END}")
+        
+        # Performance Metrics
+        print(f"\n{Colors.BOLD}{Colors.MAGENTA}Performance Metrics:{Colors.END}")
+        avg_latency = rev_stats.get('avg_latency', 0)
+        print(f"  Average Latency: {avg_latency:.2f}ms (target: <50ms)")
+        latency_status = "✓ Within target" if avg_latency < 50 else "⚠ Above target"
+        latency_color = Colors.GREEN if avg_latency < 50 else Colors.YELLOW
+        print(f"  Latency Status: {latency_color}{latency_status}{Colors.END}")
+        
+        # Recommendations
+        print(f"\n{Colors.BOLD}{Colors.MAGENTA}Recommendations:{Colors.END}")
+        if report['variance_pct'] >= 2.0:
+            print(f"  {Colors.RED}• URGENT: Investigate high variance{Colors.END}")
+            print(f"    - Review Revenium middleware logs")
+            print(f"    - Check system resource utilization")
+            print(f"    - Verify network connectivity")
+        elif report['variance_pct'] >= 1.0:
+            print(f"  {Colors.YELLOW}• Monitor variance trend{Colors.END}")
+            print(f"    - Track daily variance for patterns")
+        else:
+            print(f"  {Colors.GREEN}• Continue current monitoring{Colors.END}")
+        
+        if avg_latency >= 50:
+            print(f"  {Colors.YELLOW}• Optimize middleware performance{Colors.END}")
+            print(f"    - Review async processing efficiency")
+            print(f"    - Consider scaling middleware instances")
+        
+        if tracking_rate < 98:
+            print(f"  {Colors.YELLOW}• Improve tracking reliability{Colors.END}")
+            print(f"    - Implement retry mechanisms")
+            print(f"    - Add redundancy to tracking pipeline")
+        
+        # Action Items
+        print(f"\n{Colors.BOLD}{Colors.MAGENTA}Action Items:{Colors.END}")
+        print(f"  [ ] Review this report with engineering team")
+        print(f"  [ ] Update billing records with CloudWatch data")
+        print(f"  [ ] Archive report for compliance")
+        if report['variance_pct'] >= 2.0:
+            print(f"  [ ] {Colors.RED}Create incident ticket for variance investigation{Colors.END}")
+        print(f"  [ ] Schedule next reconciliation for {(datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')}")
+        
+        # Sign-off
+        print(f"\n{Colors.BOLD}Report Generated By:{Colors.END} Revenium Reconciliation System")
+        print(f"{Colors.BOLD}Next Review:{Colors.END} {(datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')}")
+        
+        print(f"\n{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.END}\n")
     
     def print_results(self):
         """Print simulation results"""
@@ -280,21 +432,68 @@ class Simulator:
             print(f"\n{Colors.GREEN}✓ All metrics within acceptable ranges{Colors.END}")
         
         print(f"{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.END}\n")
+        
+        # Add insights and best practice report
+        self.print_insights(report)
+        self.print_best_practice_report(report, rev_stats)
+
+def configure_simulation():
+    """Interactive configuration for learning different scenarios"""
+    print(f"\n{Colors.BOLD}{Colors.CYAN}Simulation Configuration{Colors.END}\n")
+    
+    scenarios = {
+        '1': ('Normal Operation', 30, 5, 0.0),
+        '2': ('High Volume', 20, 20, 0.0),
+        '3': ('With Failures (3%)', 30, 5, 0.03),
+        '4': ('High Failure (10%)', 30, 5, 0.10),
+        '5': ('Custom', None, None, None)
+    }
+    
+    print("Choose a scenario to explore:")
+    for key, (name, duration, rate, failure) in scenarios.items():
+        if key != '5':
+            print(f"  {key}. {name} - {duration}s, {rate} calls/sec, {failure*100}% failure")
+        else:
+            print(f"  {key}. {name} - Configure your own parameters")
+    
+    choice = input(f"\n{Colors.BOLD}Enter choice (1-5) [default: 1]: {Colors.END}").strip() or '1'
+    
+    if choice in scenarios and choice != '5':
+        name, duration, rate, failure = scenarios[choice]
+        print(f"\n{Colors.GREEN}✓ Selected: {name}{Colors.END}")
+        return duration, rate, failure
+    elif choice == '5':
+        print(f"\n{Colors.CYAN}Custom Configuration:{Colors.END}")
+        try:
+            duration = int(input("  Duration (seconds) [default: 30]: ") or "30")
+            rate = int(input("  Calls per second [default: 5]: ") or "5")
+            failure = float(input("  Failure rate 0.0-1.0 [default: 0.0]: ") or "0.0")
+            print(f"\n{Colors.GREEN}✓ Custom configuration set{Colors.END}")
+            return duration, rate, failure
+        except ValueError:
+            print(f"\n{Colors.YELLOW}Invalid input, using defaults{Colors.END}")
+            return 30, 5, 0.0
+    else:
+        print(f"\n{Colors.YELLOW}Invalid choice, using Normal Operation{Colors.END}")
+        return 30, 5, 0.0
 
 def main():
     """Main entry point"""
-    print(f"\n{Colors.CYAN}Revenium Local Simulator{Colors.END}")
-    print(f"{Colors.CYAN}This simulates the dual-track architecture locally{Colors.END}\n")
+    print(f"\n{Colors.BOLD}{Colors.CYAN}{'='*70}{Colors.END}")
+    print(f"{Colors.BOLD}{Colors.CYAN}Revenium Local Simulator{Colors.END}")
+    print(f"{Colors.BOLD}{Colors.CYAN}Learn how dual-track AI metering works{Colors.END}")
+    print(f"{Colors.BOLD}{Colors.CYAN}{'='*70}{Colors.END}")
+    
+    # Interactive configuration
+    duration, rate, failure_rate = configure_simulation()
     
     # Create simulator
     sim = Simulator()
-    
-    # Optionally add some failure rate to demonstrate variance
-    # sim.revenium.failure_rate = 0.03  # 3% failure rate
+    sim.revenium.failure_rate = failure_rate
     
     # Run simulation
     try:
-        sim.run_simulation(duration_seconds=30, calls_per_second=5)
+        sim.run_simulation(duration_seconds=duration, calls_per_second=rate)
     except Exception as e:
         print(f"{Colors.RED}Error: {e}{Colors.END}")
 
