@@ -1,1 +1,0 @@
-This folder contains project ideas and plans.
