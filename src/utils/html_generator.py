@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """
 HTML Report Generator
-Converts analysis results into beautiful, interactive HTML reports
+Converts analysis results into beautiful, interactive HTML reports with Chart.js
 """
 
 from typing import Dict, List, Any
 import json
+import random
 
 
 class HTMLReportGenerator:
     """Generate styled HTML reports from analysis data"""
+    
+    @staticmethod
+    def get_chart_js_cdn() -> str:
+        """Return Chart.js CDN script tag"""
+        return '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>'
     
     @staticmethod
     def get_base_styles() -> str:
@@ -26,34 +32,39 @@ class HTMLReportGenerator:
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
                 line-height: 1.6;
                 color: #333;
-                background: #f5f5f5;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
                 padding: 20px;
             }
             
             .container {
-                max-width: 1200px;
+                max-width: 1400px;
                 margin: 0 auto;
                 background: white;
-                padding: 40px;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                padding: 50px;
+                border-radius: 16px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             }
             
             h1 {
-                color: #1a1a1a;
-                font-size: 2.5em;
-                margin-bottom: 10px;
-                border-bottom: 3px solid #0066cc;
-                padding-bottom: 10px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                font-size: 3em;
+                margin-bottom: 15px;
+                font-weight: 800;
+                letter-spacing: -1px;
             }
             
             h2 {
-                color: #0066cc;
-                font-size: 1.8em;
-                margin-top: 40px;
-                margin-bottom: 20px;
-                border-left: 4px solid #0066cc;
-                padding-left: 15px;
+                color: #667eea;
+                font-size: 2em;
+                margin-top: 50px;
+                margin-bottom: 25px;
+                border-left: 5px solid #667eea;
+                padding-left: 20px;
+                font-weight: 700;
             }
             
             h3 {
@@ -75,10 +86,16 @@ class HTMLReportGenerator:
             .metric-card {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
-                padding: 25px;
-                border-radius: 8px;
-                margin: 20px 0;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                padding: 35px;
+                border-radius: 16px;
+                margin: 25px 0;
+                box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            
+            .metric-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
             }
             
             .metric-card h3 {
@@ -102,10 +119,17 @@ class HTMLReportGenerator:
             }
             
             .metric-box {
-                background: #f8f9fa;
-                padding: 20px;
-                border-radius: 5px;
-                border-left: 4px solid #0066cc;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                padding: 25px;
+                border-radius: 12px;
+                border-left: 5px solid #667eea;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+            
+            .metric-box:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.12);
             }
             
             .metric-box h4 {
@@ -131,14 +155,14 @@ class HTMLReportGenerator:
             }
             
             th {
-                background: #0066cc;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
-                padding: 12px;
+                padding: 15px;
                 text-align: left;
                 font-weight: 600;
                 text-transform: uppercase;
                 font-size: 0.85em;
-                letter-spacing: 0.5px;
+                letter-spacing: 1px;
             }
             
             td {
@@ -241,10 +265,39 @@ class HTMLReportGenerator:
                 font-size: 0.9em;
             }
             
+            .chart-container {
+                background: white;
+                padding: 30px;
+                border-radius: 16px;
+                margin: 30px 0;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                position: relative;
+            }
+            
+            .chart-container h3 {
+                color: #667eea;
+                margin-bottom: 20px;
+                font-size: 1.5em;
+                font-weight: 600;
+            }
+            
+            .chart-wrapper {
+                position: relative;
+                height: 400px;
+                margin: 20px 0;
+            }
+            
+            .charts-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+                gap: 30px;
+                margin: 30px 0;
+            }
+            
             .footer {
-                margin-top: 50px;
-                padding-top: 20px;
-                border-top: 1px solid #e0e0e0;
+                margin-top: 60px;
+                padding-top: 30px;
+                border-top: 2px solid #e0e0e0;
                 text-align: center;
                 color: #666;
                 font-size: 0.9em;
@@ -371,6 +424,100 @@ class HTMLReportGenerator:
         return html
     
     @staticmethod
+    def generate_chart(chart_id: str, chart_type: str, data: Dict[str, Any], title: str = "") -> str:
+        """Generate a Chart.js chart with modern styling"""
+        labels = json.dumps(data.get('labels', []))
+        datasets = json.dumps(data.get('datasets', []))
+        
+        # Generate unique colors for datasets if not provided
+        for dataset in data.get('datasets', []):
+            if 'backgroundColor' not in dataset:
+                dataset['backgroundColor'] = HTMLReportGenerator._generate_gradient_colors(len(data.get('labels', [])))
+            if 'borderColor' not in dataset:
+                dataset['borderColor'] = 'rgba(102, 126, 234, 1)'
+        
+        datasets = json.dumps(data.get('datasets', []))
+        
+        options = {
+            'responsive': True,
+            'maintainAspectRatio': False,
+            'plugins': {
+                'legend': {
+                    'display': True,
+                    'position': 'top',
+                    'labels': {
+                        'font': {'size': 12, 'weight': 'bold'},
+                        'padding': 15,
+                        'usePointStyle': True
+                    }
+                },
+                'tooltip': {
+                    'backgroundColor': 'rgba(0, 0, 0, 0.8)',
+                    'padding': 12,
+                    'titleFont': {'size': 14, 'weight': 'bold'},
+                    'bodyFont': {'size': 13},
+                    'cornerRadius': 8
+                }
+            },
+            'scales': {}
+        }
+        
+        if chart_type in ['bar', 'line']:
+            options['scales'] = {
+                'y': {
+                    'beginAtZero': True,
+                    'grid': {'color': 'rgba(0, 0, 0, 0.05)'},
+                    'ticks': {'font': {'size': 11}}
+                },
+                'x': {
+                    'grid': {'display': False},
+                    'ticks': {'font': {'size': 11}}
+                }
+            }
+        
+        options_json = json.dumps(options)
+        
+        html = f"""
+        <div class="chart-container">
+            {f'<h3>{title}</h3>' if title else ''}
+            <div class="chart-wrapper">
+                <canvas id="{chart_id}"></canvas>
+            </div>
+        </div>
+        <script>
+            (function() {{
+                const ctx = document.getElementById('{chart_id}').getContext('2d');
+                new Chart(ctx, {{
+                    type: '{chart_type}',
+                    data: {{
+                        labels: {labels},
+                        datasets: {datasets}
+                    }},
+                    options: {options_json}
+                }});
+            }})();
+        </script>
+        """
+        return html
+    
+    @staticmethod
+    def _generate_gradient_colors(count: int) -> List[str]:
+        """Generate gradient colors for charts"""
+        colors = [
+            'rgba(102, 126, 234, 0.8)',
+            'rgba(118, 75, 162, 0.8)',
+            'rgba(237, 100, 166, 0.8)',
+            'rgba(255, 154, 158, 0.8)',
+            'rgba(250, 208, 196, 0.8)',
+            'rgba(165, 177, 194, 0.8)',
+            'rgba(52, 172, 224, 0.8)',
+            'rgba(73, 219, 199, 0.8)',
+            'rgba(255, 195, 113, 0.8)',
+            'rgba(255, 107, 107, 0.8)'
+        ]
+        return colors[:count] if count <= len(colors) else colors * (count // len(colors) + 1)
+    
+    @staticmethod
     def wrap_html(content: str, title: str) -> str:
         """Wrap content in complete HTML document"""
         return f"""<!DOCTYPE html>
@@ -379,13 +526,14 @@ class HTMLReportGenerator:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
+    {HTMLReportGenerator.get_chart_js_cdn()}
     {HTMLReportGenerator.get_base_styles()}
 </head>
 <body>
     <div class="container">
         {content}
         <div class="footer">
-            <p>Generated by Revenium FinOps Showcase</p>
+            <p><strong>Generated by Revenium FinOps Showcase</strong></p>
             <p>Powered by Revenium API Intelligence Platform</p>
         </div>
     </div>

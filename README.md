@@ -14,12 +14,23 @@ This showcase demonstrates Revenium's capabilities across:
 
 ### 1. Generate Simulated Data
 
+**Option A: Run all traffic patterns (recommended)**
+```bash
+cd src
+python3 run_all_simulators.py
+```
+
+This generates comprehensive data with 4 different traffic patterns:
+- Base traffic (100 customers)
+- Seasonal patterns (50 customers)
+- Burst traffic (30 customers)
+- Gradual decline (40 customers)
+
+**Option B: Run single simulator**
 ```bash
 cd src
 python3 simulator/core.py
 ```
-
-This creates 30 days of AI call data for 100 customers across multiple providers (OpenAI, Anthropic, Bedrock).
 
 **Output**: `data/simulated_calls.csv`
 
@@ -51,21 +62,32 @@ revenium-flow/
 │   ├── project-spec.md                # Complete project specification
 │   └── README.md                      # Specification guide
 ├── src/                               # Core implementation
-│   ├── simulator/                     # AI call simulator
-│   │   ├── core.py                   # Main simulator
-│   │   └── scenarios/                # Scenario generators
-│   │       ├── steady_growth.py
-│   │       └── viral_spike.py
+│   ├── simulator/                     # AI call simulators
+│   │   ├── core.py                   # Base traffic simulator
+│   │   └── scenarios/                # Traffic pattern simulators
+│   │       ├── seasonal_pattern.py   # Cyclical usage patterns
+│   │       ├── burst_traffic.py      # Unpredictable bursts
+│   │       ├── gradual_decline.py    # Churn/decline patterns
+│   │       ├── steady_growth.py      # Linear growth (legacy)
+│   │       ├── viral_spike.py        # Viral growth (legacy)
+│   │       └── README.md             # Simulator documentation
 │   ├── analyzers/                    # Analysis engines
-│   │   ├── finops/
-│   │   │   └── understanding.py      # Cost allocation & forecasting
-│   │   └── ubr/
-│   │       └── profitability.py      # Customer margin analysis
+│   │   ├── finops/                   # 5 FinOps domain analyzers
+│   │   │   ├── understanding.py      # Cost allocation & forecasting
+│   │   │   ├── performance.py        # Model efficiency
+│   │   │   ├── realtime.py          # Anomaly detection
+│   │   │   ├── optimization.py      # Rate optimization
+│   │   │   └── alignment.py         # Org cost tracking
+│   │   └── ubr/                      # 3 UBR analyzers
+│   │       ├── profitability.py      # Customer margins
+│   │       ├── pricing.py            # Pricing strategy
+│   │       └── features.py           # Feature economics
 │   ├── utils/                        # Utilities
 │   │   └── html_generator.py        # HTML report generation
 │   ├── data/                         # Generated data (CSV)
 │   ├── reports/html/                 # Generated HTML reports
-│   └── run_all_analyzers.py         # Main runner script
+│   ├── run_all_simulators.py        # Run all traffic simulators
+│   └── run_all_analyzers.py         # Run all analyzers
 ├── showcase/                          # Revenium integration examples
 │   ├── instrumentation/
 │   │   └── revenium_basic.py        # Basic integration example
@@ -75,17 +97,18 @@ revenium-flow/
 │       └── scenario_unprofitable_customers.py
 └── viewer/                           # Web-based report viewer
     ├── index.html                    # Interactive viewer
-    └── serve.py                      # HTTP server
+    └── serve.py                      # HTTP server (auto-processes data)
 ```
 
 ## 🎨 Key Features
 
 ### 1. Realistic AI Usage Simulation
-- Multiple customer archetypes (light, power, heavy users)
-- 3 subscription tiers (starter, pro, enterprise)
-- Multi-provider support (OpenAI, Anthropic, Bedrock)
-- Realistic token distributions and costs
-- Weekend/weekday patterns
+- **4 Traffic Patterns**: Base, seasonal, burst, decline
+- **Multiple customer archetypes**: Light (70%), power (20%), heavy (10%)
+- **3 subscription tiers**: Starter ($29), Pro ($99), Enterprise ($299)
+- **Multi-provider support**: OpenAI, Anthropic, Bedrock
+- **Realistic patterns**: Weekend effects, business hours, cyclical usage
+- **220+ unique customers** across all simulators
 
 ### 2. Comprehensive Analysis
 - **Cost Allocation**: By provider, model, customer, org, product, feature
@@ -226,41 +249,57 @@ This showcase demonstrates how Revenium enables:
 4. **Engineering Teams**: Choose optimal models, detect anomalies, improve efficiency
 5. **Executives**: Understand total AI spend, margin impact, strategic opportunities
 
+## 🎯 Traffic Pattern Simulators
+
+### Base Traffic (`simulator/core.py`)
+Standard baseline with realistic customer archetypes and subscription tiers.
+
+### Seasonal Pattern (`scenarios/seasonal_pattern.py`)
+Cyclical usage with weekly, daily, and monthly patterns. Perfect for enterprise SaaS.
+
+### Burst Traffic (`scenarios/burst_traffic.py`)
+Unpredictable bursts (5x-20x) concentrated in short windows. Models batch processing and API integrations.
+
+### Gradual Decline (`scenarios/gradual_decline.py`)
+Decreasing usage with churn simulation. Demonstrates retention analysis scenarios.
+
+**See [`src/simulator/scenarios/README.md`](src/simulator/scenarios/README.md) for detailed documentation.**
+
+---
+
 ## 🔑 Key Differentiators
 
 ### Without Revenium
-❌ Manual log parsing from multiple sources  
-❌ Delayed cost visibility (hours/days)  
-❌ Complex ETL pipelines  
-❌ No standardized metadata schema  
-❌ Provider-specific integration code  
+❌ Manual log parsing from multiple sources
+❌ Delayed cost visibility (hours/days)
+❌ Complex ETL pipelines
+❌ No standardized metadata schema
+❌ Provider-specific integration code
 
 ### With Revenium
-✅ Automatic capture of all AI calls  
-✅ Real-time cost visibility  
-✅ Standardized metadata across providers  
-✅ Single integration point  
-✅ Built-in aggregation and analysis  
+✅ Automatic capture of all AI calls
+✅ Real-time cost visibility
+✅ Standardized metadata across providers
+✅ Single integration point
+✅ Built-in aggregation and analysis
+✅ Handles diverse traffic patterns automatically
 
 ## 🚧 Current Implementation Status
 
 **Completed**:
-- ✅ Core simulator with realistic data generation
-- ✅ Scenario generators (steady growth, viral spike)
+- ✅ 4 traffic pattern simulators (base, seasonal, burst, decline)
+- ✅ Master simulator runner (`run_all_simulators.py`)
+- ✅ 8 comprehensive analyzers (5 FinOps + 3 UBR)
 - ✅ HTML report generation utilities
-- ✅ FinOps: Understanding Usage & Cost analyzer
-- ✅ UBR: Customer Profitability analyzer
-- ✅ Interactive web viewer
+- ✅ Interactive web viewer with auto-processing
 - ✅ Revenium integration examples
 - ✅ Metadata builder library
 - ✅ Scenario demonstrations
+- ✅ Comprehensive documentation
 
-**Planned** (see specs for details):
-- 🔄 Additional FinOps analyzers (4 more)
-- 🔄 Additional UBR analyzers (2 more)
-- 🔄 More integration examples
-- 🔄 Query pattern examples
-- 🔄 Additional scenarios
+**Available Analyzers**:
+- ✅ FinOps: Understanding, Performance, Real-time, Optimization, Alignment
+- ✅ UBR: Customer Profitability, Pricing Strategy, Feature Economics
 
 ## 📝 License
 

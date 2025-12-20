@@ -45,12 +45,74 @@ class FeatureAnalyzer:
         analysis = self.analyze()
         html = HTMLReportGenerator()
         
-        content = html.generate_header("Feature Economics", "Feature profitability and investment recommendations")
+        content = html.generate_header(
+            "Feature Economics Analysis",
+            "Feature profitability and investment recommendations",
+            {
+                'Report Date': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                'Data Source': self.csv_file,
+                'Features Analyzed': str(len(analysis))
+            }
+        )
         
+        # Key metrics
+        total_cost = sum(f['cost'] for f in analysis)
+        total_calls = sum(f['calls'] for f in analysis)
+        
+        content += html.generate_metric_card(
+            "Total Feature Costs",
+            f"${total_cost:,.2f}",
+            f"{total_calls:,} total API calls across all features"
+        )
+        
+        # Feature cost analysis with charts
         content += "<h2>Feature Cost Analysis</h2>\n"
+        
+        # Chart 1: Feature Cost Distribution
+        content += '<div class="charts-grid">\n'
+        cost_chart_data = {
+            'labels': [f['feature'] for f in analysis],
+            'datasets': [{
+                'label': 'Total Cost ($)',
+                'data': [f['cost'] for f in analysis],
+                'backgroundColor': [
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(118, 75, 162, 0.8)',
+                    'rgba(237, 100, 166, 0.8)',
+                    'rgba(255, 154, 158, 0.8)',
+                    'rgba(73, 219, 199, 0.8)',
+                    'rgba(255, 195, 113, 0.8)'
+                ][:len(analysis)],
+                'borderColor': 'rgba(102, 126, 234, 1)',
+                'borderWidth': 2
+            }]
+        }
+        content += html.generate_chart('featureCostChart', 'bar', cost_chart_data, 'Total Cost by Feature')
+        
+        # Chart 2: Customer Adoption by Feature
+        adoption_chart_data = {
+            'labels': [f['feature'] for f in analysis],
+            'datasets': [{
+                'label': 'Customer Count',
+                'data': [f['customers'] for f in analysis],
+                'backgroundColor': [
+                    'rgba(73, 219, 199, 0.8)',
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(255, 195, 113, 0.8)',
+                    'rgba(237, 100, 166, 0.8)',
+                    'rgba(165, 177, 194, 0.8)',
+                    'rgba(255, 107, 107, 0.8)'
+                ][:len(analysis)],
+                'borderColor': 'rgba(73, 219, 199, 1)',
+                'borderWidth': 2
+            }]
+        }
+        content += html.generate_chart('featureAdoptionChart', 'bar', adoption_chart_data, 'Customer Adoption by Feature')
+        content += '</div>\n'
+        
         content += html.generate_table(
             ['Feature', 'Total Cost', 'Calls', 'Customers', 'Cost/Customer'],
-            [[f['feature'], f"${f['cost']:,.2f}", f"{f['calls']:,}", 
+            [[f['feature'], f"${f['cost']:,.2f}", f"{f['calls']:,}",
               str(f['customers']), f"${f['cost_per_customer']:.2f}"]
              for f in analysis]
         )
@@ -62,6 +124,46 @@ class FeatureAnalyzer:
             f"💡 {top_feature['feature']} is your highest-cost feature at ${top_feature['cost']:,.2f}/month with {top_feature['customers']} customers",
             'info'
         )
+        
+        # Find most efficient feature
+        most_efficient = min(analysis, key=lambda x: x['cost_per_customer'])
+        content += html.generate_alert(
+            f"⭐ {most_efficient['feature']} is most cost-efficient at ${most_efficient['cost_per_customer']:.2f} per customer",
+            'success'
+        )
+        
+        # Revenium value proposition
+        revenium_content = """
+        <h2>How Revenium Enables Feature Economics Analysis</h2>
+        <h3>Granular Feature Tracking</h3>
+        <ul>
+            <li><code>feature_id</code> metadata enables per-feature cost attribution</li>
+            <li>Real-time cost tracking across all AI providers</li>
+            <li>Customer adoption metrics by feature</li>
+            <li>Investment ROI calculations</li>
+        </ul>
+        """
+        
+        without = """
+        <ul>
+            <li>❌ No visibility into feature-level costs</li>
+            <li>❌ Manual cost allocation guesswork</li>
+            <li>❌ Delayed investment decisions</li>
+            <li>❌ Unknown feature profitability</li>
+        </ul>
+        """
+        
+        with_rev = """
+        <ul>
+            <li>✅ Automatic feature cost tracking</li>
+            <li>✅ Real-time profitability insights</li>
+            <li>✅ Data-driven investment decisions</li>
+            <li>✅ Clear feature ROI visibility</li>
+        </ul>
+        """
+        
+        revenium_content += html.generate_comparison(without, with_rev)
+        content += html.generate_revenium_value_section(revenium_content)
         
         full_html = html.wrap_html(content, "Feature Economics")
         os.makedirs(os.path.dirname(output_file), exist_ok=True)

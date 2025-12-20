@@ -190,21 +190,113 @@ class CustomerProfitabilityAnalyzer:
                 'danger'
             )
         
-        # Tier analysis
+        # Tier analysis with chart
         content += "<h2>Profitability by Subscription Tier</h2>\n"
         tier_data = analysis['tier_analysis']
+        
+        # Chart 1: Tier Revenue vs Cost Comparison
+        content += '<div class="charts-grid">\n'
+        tier_chart_data = {
+            'labels': [t['tier'].title() for t in tier_data],
+            'datasets': [
+                {
+                    'label': 'Revenue',
+                    'data': [t['revenue'] for t in tier_data],
+                    'backgroundColor': 'rgba(102, 126, 234, 0.8)',
+                    'borderColor': 'rgba(102, 126, 234, 1)',
+                    'borderWidth': 2
+                },
+                {
+                    'label': 'Cost',
+                    'data': [t['cost'] for t in tier_data],
+                    'backgroundColor': 'rgba(237, 100, 166, 0.8)',
+                    'borderColor': 'rgba(237, 100, 166, 1)',
+                    'borderWidth': 2
+                }
+            ]
+        }
+        content += html.generate_chart('tierRevenueChart', 'bar', tier_chart_data, 'Revenue vs Cost by Tier')
+        
+        # Chart 2: Margin Percentage by Tier
+        margin_chart_data = {
+            'labels': [t['tier'].title() for t in tier_data],
+            'datasets': [{
+                'label': 'Margin %',
+                'data': [t['margin_pct'] for t in tier_data],
+                'backgroundColor': [
+                    'rgba(73, 219, 199, 0.8)' if t['margin_pct'] > 50 else
+                    'rgba(255, 195, 113, 0.8)' if t['margin_pct'] > 20 else
+                    'rgba(255, 107, 107, 0.8)'
+                    for t in tier_data
+                ],
+                'borderColor': 'rgba(102, 126, 234, 1)',
+                'borderWidth': 2
+            }]
+        }
+        content += html.generate_chart('tierMarginChart', 'bar', margin_chart_data, 'Profit Margin % by Tier')
+        content += '</div>\n'
+        
         content += html.generate_table(
             ['Tier', 'Customers', 'Revenue', 'Cost', 'Margin', 'Margin %'],
-            [[t['tier'].title(), str(t['customers']), f"${t['revenue']:,.2f}", 
-              f"${t['cost']:,.2f}", f"${t['margin']:,.2f}", f"{t['margin_pct']:.1f}%"] 
+            [[t['tier'].title(), str(t['customers']), f"${t['revenue']:,.2f}",
+              f"${t['cost']:,.2f}", f"${t['margin']:,.2f}", f"{t['margin_pct']:.1f}%"]
              for t in tier_data]
         )
         
-        # Margin distribution
-        content += "<h2>Margin Distribution</h2>\n"
+        # Margin distribution with charts
+        content += "<h2>Customer Margin Distribution</h2>\n"
         dist = analysis['margin_distribution']
+        
+        # Chart 3: Margin Distribution Pie Chart
+        content += '<div class="charts-grid">\n'
+        dist_chart_data = {
+            'labels': ['High Margin (>50%)', 'Medium (20-50%)', 'Low (0-20%)', 'Negative'],
+            'datasets': [{
+                'label': 'Customer Count',
+                'data': [
+                    dist['high_margin']['count'],
+                    dist['medium_margin']['count'],
+                    dist['low_margin']['count'],
+                    dist['negative_margin']['count']
+                ],
+                'backgroundColor': [
+                    'rgba(73, 219, 199, 0.8)',
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(255, 195, 113, 0.8)',
+                    'rgba(255, 107, 107, 0.8)'
+                ],
+                'borderWidth': 2,
+                'borderColor': '#fff'
+            }]
+        }
+        content += html.generate_chart('marginDistChart', 'doughnut', dist_chart_data, 'Customer Distribution by Margin Category')
+        
+        # Chart 4: Average Margin by Category
+        avg_margin_data = {
+            'labels': ['High Margin', 'Medium Margin', 'Low Margin', 'Negative Margin'],
+            'datasets': [{
+                'label': 'Average Margin ($)',
+                'data': [
+                    dist['high_margin']['avg_margin'],
+                    dist['medium_margin']['avg_margin'],
+                    dist['low_margin']['avg_margin'],
+                    dist['negative_margin']['avg_loss']
+                ],
+                'backgroundColor': [
+                    'rgba(73, 219, 199, 0.8)',
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(255, 195, 113, 0.8)',
+                    'rgba(255, 107, 107, 0.8)'
+                ],
+                'borderColor': 'rgba(102, 126, 234, 1)',
+                'borderWidth': 2
+            }]
+        }
+        content += html.generate_chart('avgMarginChart', 'bar', avg_margin_data, 'Average Margin by Category')
+        content += '</div>\n'
+        
         content += html.generate_metric_grid([
-            {'label': 'High Margin (>50%)', 'value': str(dist['high_margin']['count']), 
+            {'label': 'High Margin (>50%)', 'value': str(dist['high_margin']['count']),
              'subtitle': f"Avg: ${dist['high_margin']['avg_margin']:.2f}"},
             {'label': 'Medium Margin (20-50%)', 'value': str(dist['medium_margin']['count']),
              'subtitle': f"Avg: ${dist['medium_margin']['avg_margin']:.2f}"},
