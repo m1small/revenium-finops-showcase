@@ -150,7 +150,9 @@ class Analyzer:
 
 **Class**: `RealtimeAnalyzer`
 
-**Purpose**: Anomaly detection and immediate optimization opportunities
+**Purpose**: Real-time anomaly detection, threshold-based alerting, and proactive cost management
+
+**Key Differentiator**: This analyzer demonstrates Revenium's real-time alerting capabilities that prevent cost overruns before they happen, not after-the-fact reporting.
 
 #### Analysis Components
 
@@ -159,6 +161,8 @@ class Analyzer:
 - Detect customers exceeding thresholds
 - Find inefficient usage patterns
 - Spot provider/model anomalies
+- **Cumulative Usage Tracking**: Compare actual usage vs. linear expectation to detect anomalies early
+- **Bulk Anomaly Queries**: Query up to 50 anomaly IDs simultaneously for comprehensive monitoring
 
 **Threshold Violations**:
 - Customers exceeding budget caps
@@ -177,26 +181,76 @@ class Analyzer:
 - Quick wins for optimization
 - Urgent actions needed
 
+#### Alert Configuration & Notification
+
+**Budget Threshold Alerts**:
+Revenium enables proactive alerting before costs escalate:
+
+```python
+# Example alert configurations
+alert_configs = [
+    {
+        'type': 'customer_revenue_ratio',
+        'condition': 'AI usage > 30% of monthly revenue',
+        'action': 'notify_finance_team',
+        'channels': ['email', 'slack']
+    },
+    {
+        'type': 'daily_spike',
+        'condition': 'usage > 5x daily average',
+        'action': 'notify_ops_team',
+        'channels': ['slack', 'pagerduty']
+    },
+    {
+        'type': 'tier_limit_approaching',
+        'condition': 'usage > 80% of tier allocation',
+        'action': 'notify_customer_success',
+        'channels': ['email']
+    }
+]
+```
+
+**Portfolio View with Risk Assessment**:
+- Track all customers against budget thresholds
+- Risk classification (low/medium/high)
+- Progress tracking toward monthly limits
+- Trending indicators (accelerating/stable/declining)
+
+**Notification Channels**:
+- **Email**: Detailed alert summaries with charts
+- **Slack**: Real-time notifications with action buttons
+- **Webhook**: Custom integration with existing systems
+
+**Alert Examples**:
+1. "Customer cust_0042 has used $89 (89%) of their $100/month Pro tier allocation with 10 days remaining"
+2. "Unusual spending spike detected: cust_0123 spent $47 today vs. $8 daily average (587% increase)"
+3. "18 customers are on track to exceed their tier limits this month - total revenue at risk: $2,340"
+
 #### Key Metrics
 
 - **Anomaly Count**: Number of anomalous calls
-- **Customers at Risk**: Exceeding budgets
+- **Customers at Risk**: Exceeding budgets or approaching limits
+- **Revenue at Risk**: Total subscription value of at-risk customers
 - **Potential Savings**: From fixing inefficiencies
 - **Threshold Violations**: Count and severity
+- **Alert Response Time**: Time from detection to notification
 
 #### Recommendations Generated
 
 - Immediate actions (e.g., "Contact cust_0042 - usage spike detected")
-- Threshold adjustments
-- Automated policy suggestions
-- Alert configurations
+- Threshold adjustments based on actual patterns
+- Automated policy suggestions (usage caps, rate limiting)
+- Alert configuration recommendations
+- Customer outreach prioritization (highest revenue at risk first)
 
 #### HTML Report Components
 
-- Anomaly summary cards
-- Top violators table
-- Inefficiency analysis
-- Action items list
+- Anomaly summary cards with severity indicators
+- Top violators table with trending arrows
+- Inefficiency analysis with cost impact
+- Action items list prioritized by urgency
+- Alert history timeline
+- Risk portfolio dashboard
 
 ---
 

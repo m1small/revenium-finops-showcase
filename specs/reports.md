@@ -736,8 +736,461 @@ webbrowser.open('test_report.html')
    - Font options
    - Layout preferences
 
+## Continuous Update Viewer
+
+**File**: `viewer/index.html` + `viewer/serve.py`
+
+**Purpose**: Live-updating report viewer that continuously refreshes as data grows to 50MB
+
+### Server-Side Continuous Monitoring
+
+**Implementation**: `viewer/serve.py`
+
+The web server includes a background monitoring thread that watches the CSV file and regenerates reports automatically:
+
+```python
+class ContinuousReportServer:
+    """
+    HTTP server with background CSV monitoring and auto-report generation
+    """
+
+    def __init__(self, csv_path='data/simulated_calls.csv', port=8000):
+        self.csv_path = csv_path
+        self.last_size = 0
+        self.max_size_mb = 50
+        self.monitoring = True
+        self.port = port
+        self.check_interval = 10  # seconds
+
+    def get_csv_size_mb(self):
+        """Get current CSV file size in megabytes"""
+        if os.path.exists(self.csv_path):
+            return os.path.getsize(self.csv_path) / (1024 * 1024)
+        return 0
+
+    def run_analyzers(self):
+        """Execute all analyzers on current CSV data"""
+        # Import and run all analyzer modules
+        from analyzers.finops import (
+            understanding, performance, realtime,
+            optimization, alignment
+        )
+        from analyzers.ubr import (
+            profitability, pricing, features
+        )
+
+        analyzers = [
+            understanding.UnderstandingAnalyzer,
+            performance.PerformanceAnalyzer,
+            realtime.RealtimeAnalyzer,
+            optimization.OptimizationAnalyzer,
+            alignment.AlignmentAnalyzer,
+            profitability.ProfitabilityAnalyzer,
+            pricing.PricingAnalyzer,
+            features.FeaturesAnalyzer
+        ]
+
+        for AnalyzerClass in analyzers:
+            analyzer = AnalyzerClass(self.csv_path)
+            analyzer.load_data()
+            analyzer.analyze()
+            analyzer.generate_html_report()
+
+        # Update manifest with new timestamp and size
+        self.update_manifest()
+
+    def update_manifest(self):
+        """Update manifest.json with current timestamp and CSV size"""
+        manifest = {
+            'generated_at': datetime.now().isoformat(),
+            'csv_size_mb': self.get_csv_size_mb(),
+            'max_size_mb': self.max_size_mb,
+            'progress_percentage': min(100, (self.get_csv_size_mb() / self.max_size_mb) * 100)
+        }
+
+        with open('viewer/manifest.json', 'w') as f:
+            json.dump(manifest, f, indent=2)
+
+    def monitor_and_regenerate(self):
+        """
+        Background thread: continuously monitor CSV and regenerate reports
+
+        Runs every 10 seconds, checking if CSV size has changed.
+        If changed, runs all analyzers and updates reports.
+        Stops when CSV reaches 50MB.
+        """
+        print(f"📊 Starting continuous monitoring (checking every {self.check_interval}s)...")
+
+        while self.monitoring:
+            current_size = self.get_csv_size_mb()
+
+            # Detect size change
+            if current_size != self.last_size and current_size > 0:
+                print(f"\n📈 CSV size changed: {self.last_size:.2f} MB → {current_size:.2f} MB")
+                print(f"🔄 Regenerating all reports...")
+
+                start_time = time.time()
+                self.run_analyzers()
+                elapsed = time.time() - start_time
+
+                print(f"✅ Reports updated in {elapsed:.1f}s")
+                print(f"📊 Progress: {current_size:.2f} MB / {self.max_size_mb} MB ({current_size/self.max_size_mb*100:.1f}%)")
+
+                self.last_size = current_size
+
+                # Check if target reached
+                if current_size >= self.max_size_mb:
+                    print(f"\n🎯 Target size of {self.max_size_mb} MB reached!")
+                    print(f"✅ Monitoring complete. Server will continue serving reports.")
+                    self.monitoring = False
+
+            time.sleep(self.check_interval)
+
+    def start(self):
+        """Start server with background monitoring"""
+        # Run initial analysis
+        if self.get_csv_size_mb() > 0:
+            print("🔄 Running initial analysis...")
+            self.run_analyzers()
+            self.last_size = self.get_csv_size_mb()
+
+        # Start background monitoring thread
+        monitor_thread = threading.Thread(target=self.monitor_and_regenerate)
+        monitor_thread.daemon = True
+        monitor_thread.start()
+
+        # Start HTTP server
+        print(f"\n🌐 Starting HTTP server on http://localhost:{self.port}")
+        print(f"📊 Open your browser to view live-updating reports\n")
+
+        handler = http.server.SimpleHTTPRequestHandler
+        with socketserver.TCPServer(("", self.port), handler) as httpd:
+            httpd.serve_forever()
+```
+
+### Client-Side Auto-Refresh
+
+**Implementation**: JavaScript in `viewer/index.html`
+
+The viewer includes JavaScript that polls the manifest file for updates and refreshes the UI automatically:
+
+```javascript
+// Continuous update system
+class LiveReportViewer {
+    constructor() {
+        this.lastManifestUpdate = 0;
+        this.currentCsvSize = 0;
+        this.maxSize = 50;
+        this.pollInterval = 15000; // 15 seconds
+        this.notificationTimeout = null;
+    }
+
+    init() {
+        // Load initial reports
+        this.loadManifest();
+
+        // Start polling for updates
+        setInterval(() => this.checkForUpdates(), this.pollInterval);
+    }
+
+    checkForUpdates() {
+        // Add cache-busting parameter
+        fetch(`manifest.json?_=${Date.now()}`)
+            .then(response => response.json())
+            .then(manifest => {
+                const manifestTime = new Date(manifest.generated_at).getTime();
+
+                // Check if manifest has been updated
+                if (manifestTime > this.lastManifestUpdate) {
+                    this.lastManifestUpdate = manifestTime;
+                    this.currentCsvSize = manifest.csv_size_mb;
+
+                    // Show update notification
+                    this.showUpdateNotification(manifest);
+
+                    // Refresh reports list
+                    this.refreshReportsList();
+
+                    // Update progress indicator
+                    this.updateProgressBar(manifest);
+
+                    // Update timestamp
+                    this.updateLastRefreshTime(manifestTime);
+                }
+            })
+            .catch(error => console.error('Error checking for updates:', error));
+    }
+
+    showUpdateNotification(manifest) {
+        // Create toast notification
+        const notification = document.createElement('div');
+        notification.className = 'update-notification';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-icon">📊</div>
+                <div class="notification-text">
+                    <strong>Reports Updated!</strong>
+                    <div>CSV size: ${manifest.csv_size_mb.toFixed(2)} MB / ${manifest.max_size_mb} MB</div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 500);
+        }, 5000);
+    }
+
+    updateProgressBar(manifest) {
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const percentage = manifest.progress_percentage;
+
+        if (progressBar) {
+            progressBar.style.width = `${percentage}%`;
+            progressBar.setAttribute('aria-valuenow', percentage);
+        }
+
+        if (progressText) {
+            progressText.textContent =
+                `${manifest.csv_size_mb.toFixed(2)} MB / ${manifest.max_size_mb} MB (${percentage.toFixed(1)}%)`;
+        }
+
+        // Change color as it approaches completion
+        if (progressBar) {
+            if (percentage >= 90) {
+                progressBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+            } else if (percentage >= 50) {
+                progressBar.style.background = 'linear-gradient(90deg, #667eea, #764ba2)';
+            }
+        }
+    }
+
+    updateLastRefreshTime(timestamp) {
+        const refreshElement = document.getElementById('last-refresh');
+        if (refreshElement) {
+            const now = Date.now();
+            const diff = Math.floor((now - timestamp) / 1000);
+
+            let timeText;
+            if (diff < 60) {
+                timeText = 'just now';
+            } else if (diff < 3600) {
+                timeText = `${Math.floor(diff / 60)} minutes ago`;
+            } else {
+                timeText = `${Math.floor(diff / 3600)} hours ago`;
+            }
+
+            refreshElement.textContent = `Last updated: ${timeText}`;
+        }
+    }
+
+    refreshReportsList() {
+        // Reload the reports list without full page refresh
+        // This could reload individual report cards or the entire list
+        location.reload(); // Simple approach
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const viewer = new LiveReportViewer();
+    viewer.init();
+});
+```
+
+### Live Progress Indicator UI
+
+Add to `viewer/index.html`:
+
+```html
+<!-- Live Progress Section -->
+<div class="live-progress-container">
+    <div class="progress-header">
+        <h3>Live Data Generation Progress</h3>
+        <span id="last-refresh" class="refresh-time">Initializing...</span>
+    </div>
+
+    <div class="progress-bar-container">
+        <div id="progress-bar" class="progress-bar"
+             role="progressbar"
+             aria-valuenow="0"
+             aria-valuemin="0"
+             aria-valuemax="100">
+        </div>
+    </div>
+
+    <div id="progress-text" class="progress-text">
+        0.00 MB / 50 MB (0.0%)
+    </div>
+
+    <div class="live-indicator">
+        <span class="pulse-dot"></span>
+        <span>Live updating every 15 seconds</span>
+    </div>
+</div>
+
+<!-- CSS for Progress Indicator -->
+<style>
+.live-progress-container {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 16px;
+    margin-bottom: 40px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.refresh-time {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 30px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 15px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 15px;
+    transition: width 0.8s ease;
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+.progress-text {
+    text-align: center;
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.live-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #10b981;
+    font-size: 0.9em;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.update-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+.notification-content {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.notification-icon {
+    font-size: 2em;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.fade-out {
+    animation: fadeOut 0.5s ease;
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+</style>
+```
+
+### Manifest Structure
+
+**File**: `viewer/manifest.json` (auto-generated)
+
+```json
+{
+  "generated_at": "2025-12-22T10:45:23.123456",
+  "csv_size_mb": 32.45,
+  "max_size_mb": 50,
+  "progress_percentage": 64.9,
+  "reports": [
+    {
+      "category": "FinOps",
+      "name": "Understanding Usage & Cost",
+      "file": "reports/html/understanding.html"
+    }
+  ]
+}
+```
+
+### User Experience Flow
+
+1. **User starts server**: `python3 viewer/serve.py`
+2. **Server initializes**: Runs analyzers on existing data
+3. **User opens browser**: Navigates to `localhost:8000`
+4. **Initial load**: Viewer shows current reports and progress bar
+5. **Background monitoring**: Server watches CSV every 10 seconds
+6. **Data grows**: Simulator appends new calls to CSV
+7. **Server detects change**: Runs analyzers automatically
+8. **Client polls**: JavaScript checks manifest every 15 seconds
+9. **Update notification**: Toast appears "Reports Updated!"
+10. **Progress updates**: Bar advances from 32MB → 35MB
+11. **Continuous loop**: Steps 5-10 repeat until 50MB
+12. **Completion**: Progress bar hits 100%, monitoring stops
+
+### Benefits
+
+- **Real-time visibility**: See reports update as data generates
+- **No manual refresh**: Automatic updates every 15 seconds
+- **Progress tracking**: Visual feedback on generation status
+- **Non-blocking**: Browse current reports while new ones generate
+- **User-friendly**: Toast notifications keep users informed
+
 ## Related Specifications
 
-- **Architecture**: See `architecture.md`
+- **Architecture**: See `architecture.md` (continuous update architecture)
 - **Analyzers**: See `analyzers.md` (consumers of report generator)
 - **Workflows**: See `workflows.md` (how reports are generated and viewed)
+- **Simulators**: See `simulators.md` (continuous CSV generation to 50MB)

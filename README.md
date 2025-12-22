@@ -1,160 +1,198 @@
 # Revenium FinOps Showcase
 
-A comprehensive Python-based demonstration system that showcases how **Revenium** enables FinOps domains and usage-based revenue (UBR) analysis for AI costs through realistic simulations, API integration examples, and interactive HTML reports.
+A comprehensive Python-based demonstration system showcasing how Revenium enables FinOps domains and usage-based revenue analysis for AI costs through realistic simulations, continuous data generation, and live-updating reports.
 
-## 🎯 Project Overview
+## Project Overview
 
 This showcase demonstrates Revenium's capabilities across:
 - **5 FinOps Domains**: Understanding, Performance, Real-time, Optimization, Alignment
 - **3 UBR Analyses**: Customer Profitability, Pricing Strategy, Feature Economics
-- **Integration Examples**: Real code showing Revenium SDK usage patterns
-- **Scenario Demonstrations**: Business problems solved with Revenium
+- **Real-Time Alerting**: Budget thresholds, portfolio risk assessment, proactive notifications
+- **Multi-Dimensional Analysis**: Cross-functional cost/performance insights with Chart Builder
+- **OpenTelemetry Integration**: Unified observability and FinOps platform
 
-## 🚀 Quick Start
+## Key Enhancements
 
-### 1. Generate Simulated Data
+**Diverse Multi-Provider Coverage**:
+- 7 AI providers (OpenAI, Anthropic, Google, Bedrock, Azure, Mistral, Cohere)
+- 20+ models with 200x pricing variance
+- Market-weighted distribution (OpenAI 40%, Anthropic 25%, Google 15%)
 
-**Option A: Run all traffic patterns (recommended)**
+**Variable Real-World Patterns**:
+- 11 traffic scenarios (seasonal, burst, multi-tenant, model migration, time zones, feature launches, cost optimization)
+- Global time zone patterns with 24-hour coverage
+- Weekend/holiday effects and business hour cycles
+
+**Continuous Generation**:
+- Automatic data generation to 50MB (~145,000 calls)
+- Live-updating viewer with progress tracking
+- Auto-regenerating reports every 10 seconds
+- Real-time notifications and visual progress bar
+
+## Quick Start
+
+### 1. Generate Continuous Data (Target: 50MB)
+
 ```bash
 cd src
 python3 run_all_simulators.py
 ```
 
-This generates comprehensive data with 4 different traffic patterns:
-- Base traffic (100 customers)
-- Seasonal patterns (50 customers)
-- Burst traffic (30 customers)
-- Gradual decline (40 customers)
+The simulator continuously generates diverse traffic patterns until reaching 50MB:
+- Cycles through all 10 scenario simulators
+- Monitors file size and stops at 50MB
+- Generates ~145,000 calls with 500+ unique customers
+- Takes approximately 8-12 minutes
 
-**Option B: Run single simulator**
-```bash
-cd src
-python3 simulator/core.py
-```
+Output: `data/simulated_calls.csv` (50MB with comprehensive metadata)
 
-**Output**: `data/simulated_calls.csv`
-
-### 2. Run All Analyzers
+### 2. Start Live-Updating Viewer
 
 ```bash
-python3 run_all_analyzers.py
-```
-
-Executes all analyzers and generates comprehensive HTML reports.
-
-**Output**: Reports in `reports/html/` directory
-
-### 3. View Interactive Reports
-
-```bash
-cd ../viewer
+cd viewer
 python3 serve.py
 ```
 
-Then open your browser to **http://localhost:8000**
+Then open browser to **http://localhost:8000**
 
-## 📁 Project Structure
+The viewer continuously updates as data grows:
+- Server monitors CSV every 10 seconds
+- Auto-runs analyzers when size increases
+- Client polls for updates every 15 seconds
+- Progress bar shows 0-50MB status
+- Toast notifications on report updates
+
+### 3. View Interactive Reports
+
+Browser displays:
+- Live progress indicator (X MB / 50 MB)
+- Auto-refreshing report cards
+- Real-time update notifications
+- 8 comprehensive analysis reports
+
+## Project Structure
 
 ```
 revenium-flow/
-├── README.md                           # This file
-├── specs/                              # Detailed specifications
-│   ├── project-spec.md                # Complete project specification
-│   └── README.md                      # Specification guide
-├── src/                               # Core implementation
+├── README.md                          # This file
+├── specs/                             # Detailed specifications
+│   ├── README.md                      # Specification guide
+│   ├── architecture.md                # System design & continuous updates
+│   ├── simulators.md                  # Traffic simulation (7 providers, 11 patterns)
+│   ├── analyzers.md                   # Analysis engines & real-time alerting
+│   ├── integration.md                 # OTEL & Chart Builder integration
+│   ├── reports.md                     # Continuous viewer & UI design
+│   ├── data-schema.md                 # 19-field metadata schema
+│   ├── workflows.md                   # User workflows
+│   └── requirements.md                # Technical requirements
+├── src/                               # Implementation (deleted in current state)
 │   ├── simulator/                     # AI call simulators
-│   │   ├── core.py                   # Base traffic simulator
-│   │   └── scenarios/                # Traffic pattern simulators
-│   │       ├── seasonal_pattern.py   # Cyclical usage patterns
-│   │       ├── burst_traffic.py      # Unpredictable bursts
-│   │       ├── gradual_decline.py    # Churn/decline patterns
-│   │       ├── steady_growth.py      # Linear growth (legacy)
-│   │       ├── viral_spike.py        # Viral growth (legacy)
-│   │       └── README.md             # Simulator documentation
-│   ├── analyzers/                    # Analysis engines
-│   │   ├── finops/                   # 5 FinOps domain analyzers
-│   │   │   ├── understanding.py      # Cost allocation & forecasting
-│   │   │   ├── performance.py        # Model efficiency
-│   │   │   ├── realtime.py          # Anomaly detection
-│   │   │   ├── optimization.py      # Rate optimization
-│   │   │   └── alignment.py         # Org cost tracking
+│   │   ├── core.py                   # Base simulator
+│   │   └── scenarios/                # 11 traffic patterns
+│   ├── analyzers/                     # 8 analysis engines
+│   │   ├── finops/                   # 5 FinOps analyzers
 │   │   └── ubr/                      # 3 UBR analyzers
-│   │       ├── profitability.py      # Customer margins
-│   │       ├── pricing.py            # Pricing strategy
-│   │       └── features.py           # Feature economics
-│   ├── utils/                        # Utilities
-│   │   └── html_generator.py        # HTML report generation
-│   ├── data/                         # Generated data (CSV)
-│   ├── reports/html/                 # Generated HTML reports
-│   ├── run_all_simulators.py        # Run all traffic simulators
-│   └── run_all_analyzers.py         # Run all analyzers
-├── showcase/                          # Revenium integration examples
-│   ├── instrumentation/
-│   │   └── revenium_basic.py        # Basic integration example
-│   ├── metadata/
-│   │   └── builders.py              # Metadata builder library
-│   └── scenarios/
-│       └── scenario_unprofitable_customers.py
-└── viewer/                           # Web-based report viewer
-    ├── index.html                    # Interactive viewer
-    └── serve.py                      # HTTP server (auto-processes data)
+│   ├── utils/                        # HTML report generation
+│   ├── data/                         # Generated CSV (50MB)
+│   └── reports/html/                 # Generated reports
+├── showcase/                          # Integration examples
+│   ├── instrumentation/              # Basic & OTEL tracking
+│   ├── metadata/                     # Metadata builders
+│   ├── queries/                      # Chart Builder examples
+│   └── scenarios/                    # Business scenarios
+└── viewer/                           # Live-updating web viewer
+    ├── index.html                    # Interactive UI
+    └── serve.py                      # Continuous monitoring server
 ```
 
-## 🎨 Key Features
+## Key Features
 
-### 1. Realistic AI Usage Simulation
-- **4 Traffic Patterns**: Base, seasonal, burst, decline
-- **Multiple customer archetypes**: Light (70%), power (20%), heavy (10%)
-- **3 subscription tiers**: Starter ($29), Pro ($99), Enterprise ($299)
-- **Multi-provider support**: OpenAI, Anthropic, Bedrock
-- **Realistic patterns**: Weekend effects, business hours, cyclical usage
-- **220+ unique customers** across all simulators
+### 1. Diverse Multi-Provider Simulation
+- **7 Providers**: OpenAI, Anthropic, Google, Bedrock, Azure, Mistral, Cohere
+- **20+ Models**: From budget (Gemini Flash $0.000075/1K) to premium (Claude Opus $0.075/1K)
+- **Market-Realistic Distribution**: Weighted by actual market share
+- **500+ Customers** across organizations, tiers, and products
 
-### 2. Comprehensive Analysis
-- **Cost Allocation**: By provider, model, customer, org, product, feature
-- **Token Efficiency**: Input/output ratios and cost per 1K tokens
-- **Forecasting**: 30-day, 90-day, and annual projections
-- **Profitability**: Customer-level margin analysis
-- **Recommendations**: Actionable insights for optimization
+### 2. Variable Traffic Patterns
+- **Base Traffic**: Standard usage with customer archetypes
+- **Seasonal Pattern**: Cyclical business cycles (quarterly, monthly, weekly)
+- **Burst Traffic**: Unpredictable 5x-20x spikes
+- **Multi-Tenant**: Organization-level variability (3x-10x variance)
+- **Model Migration**: Gradual provider/model shifts
+- **Weekend Effect**: Realistic weekend/holiday reductions
+- **Time Zone Patterns**: Global 24-hour coverage
+- **Feature Launch**: Adoption spike patterns
+- **Cost Optimization**: Engineering-led cost reductions
+- **Gradual Decline**: Customer churn simulation
 
-### 3. Beautiful HTML Reports
-- Modern, responsive design
-- Interactive web viewer
-- Print-friendly layouts
-- No external dependencies
-- Embedded CSS/JS
+### 3. Continuous Generation & Monitoring
+- **Size-Limited**: Automatically stops at 50MB
+- **Progress Tracking**: Real-time file size monitoring
+- **Balanced Mix**: Equal representation from all patterns
+- **Reproducible**: Same seed produces identical dataset
 
-### 4. Revenium Integration Examples
-- Basic instrumentation patterns
-- Metadata builder library
-- Hierarchical tagging strategies
-- Real-world scenario demonstrations
+### 4. Live-Updating Viewer
+- **Server Monitoring**: Background thread checks CSV every 10 seconds
+- **Auto-Regeneration**: Runs analyzers when data grows
+- **Client Polling**: JavaScript checks manifest every 15 seconds
+- **Progress Bar**: Visual 0-50MB indicator with color changes
+- **Toast Notifications**: Updates appear automatically
+- **Non-Blocking**: Browse reports while new ones generate
 
-## 📊 Generated Reports
+### 5. Comprehensive Analysis
+**FinOps Analyzers**:
+- Understanding: Cost allocation, forecasting, token efficiency
+- Performance: Model efficiency, latency analysis
+- Real-Time: Anomaly detection, threshold alerts, portfolio risk
+- Optimization: Reserved capacity, model switching
+- Alignment: Multi-tenant cost tracking, chargeback
+
+**UBR Analyzers**:
+- Profitability: Customer margins, unprofitable detection
+- Pricing: 4 pricing model comparisons
+- Features: Feature economics, ROI analysis
+
+### 6. Real-Time Alerting
+- Budget threshold alerts (e.g., "usage > 30% of revenue")
+- Portfolio risk assessment with trending indicators
+- Multi-channel notifications (Email, Slack, Webhook)
+- Bulk anomaly queries (up to 50 IDs)
+- Proactive cost management
+
+### 7. Advanced Integration Patterns
+**OpenTelemetry Integration**:
+- OTEL AI metrics in JSON format
+- Trace-level analytics with cost correlation
+- Distributed workflow cost tracking
+- 5-minute integration setup
+
+**Multi-Dimensional Analysis**:
+- Chart Builder for reusable configurations
+- Cross-functional insights (cost + performance + usage)
+- Workspace collaboration with custom display names
+- Team-wide chart sharing
+
+## Generated Reports
 
 ### FinOps Domain Reports
-
-1. **Understanding Usage & Cost** - Comprehensive cost allocation, forecasting, and token efficiency
-2. **Performance Tracking** - Model efficiency comparison and latency analysis (planned)
-3. **Real-Time Decision Making** - Cost anomaly detection and optimization opportunities (planned)
-4. **Rate Optimization** - Reserved capacity and model switching analysis (planned)
-5. **Organizational Alignment** - Cost by org, product, feature with chargebacks (planned)
+1. **Understanding Usage & Cost**: Comprehensive allocation, forecasting, efficiency
+2. **Performance Tracking**: Model efficiency, latency percentiles, SLA compliance
+3. **Real-Time Decision Making**: Anomaly detection, threshold alerts, portfolio risk
+4. **Rate Optimization**: Reserved capacity, model switching opportunities
+5. **Organizational Alignment**: Multi-tenant tracking, chargeback/showback
 
 ### Usage-Based Revenue Reports
+6. **Customer Profitability**: Margin analysis, unprofitable customer detection
+7. **Pricing Strategy**: 4 pricing model comparisons, revenue projections
+8. **Feature Economics**: Feature profitability, investment recommendations
 
-6. **Customer Profitability** - Cost to serve, margin analysis, unprofitable customer identification
-7. **Pricing Strategy** - Pricing model comparison and revenue projections (planned)
-8. **Feature Economics** - Feature profitability and investment recommendations (planned)
-
-## 🔧 Revenium Integration Examples
+## Integration Examples
 
 ### Basic Instrumentation
-
 ```python
 from showcase.instrumentation.revenium_basic import ReveniumBasicTracker
 
 tracker = ReveniumBasicTracker(api_key="your-api-key")
-
 call_id = tracker.track_ai_call(
     provider="openai",
     model="gpt-4",
@@ -166,149 +204,138 @@ call_id = tracker.track_ai_call(
         'customer_id': 'cust_0001',
         'organization_id': 'org_001',
         'product_id': 'product_a',
-        'feature_id': 'chat',
-        'subscription_tier': 'pro'
+        'feature_id': 'chat'
     }
 )
 ```
 
-### Metadata Builder
-
+### OpenTelemetry Integration
 ```python
-from showcase.metadata.builders import ReveniumMetadataBuilder
+from showcase.instrumentation.revenium_otel import ReveniumOTELIntegration
 
-metadata = (ReveniumMetadataBuilder()
-    .customer('cust_0001')
-    .organization('org_001')
-    .product('product_a')
-    .feature('chat')
-    .tier('pro')
-    .environment('production')
-    .build())
+revenium_otel = ReveniumOTELIntegration(
+    revenium_endpoint="https://otel.revenium.io/v1/traces",
+    api_key="your-api-key"
+)
+
+trace_id = revenium_otel.track_ai_completion(
+    ai_response=response,
+    context={'customer_id': 'cust_0001', 'feature_id': 'chat'}
+)
 ```
 
-## 🎯 Scenario Demonstrations
+### Chart Builder
+```python
+from showcase.queries.chart_builder import ReveniumChartBuilder
 
-### Unprofitable Customer Detection
-
-```bash
-cd showcase/scenarios
-python3 scenario_unprofitable_customers.py
+builder = ReveniumChartBuilder(api_key="your-api-key")
+chart_id = builder.build_multi_dimensional_chart(
+    dimensions=['organization_id', 'product_id', 'model'],
+    metrics=['cost_usd', 'total_tokens'],
+    filters={'environment': 'production'},
+    visualization_type='treemap',
+    name='Org-Product-Model Cost Hierarchy'
+)
 ```
 
-Demonstrates how Revenium identifies customers costing more to serve than subscription revenue, enabling proactive intervention.
-
-## 💡 Key Insights Examples
+## Key Insights Examples
 
 - **Cost Optimization**: "Switch to claude-sonnet-4 for simple tasks to save $2,340/month"
 - **Revenue Protection**: "$18,450/month at risk from 15 unprofitable customers"
+- **Real-Time Alert**: "Customer cust_0042 at 89% of Pro tier allocation with 10 days remaining"
 - **Pricing Impact**: "Hybrid pricing model increases margin by $12,340/month"
 - **Feature Strategy**: "Invest in Code feature (85% margin, 72% adoption)"
+- **Migration ROI**: "GPT-4 to Claude Sonnet migration saves $15,200/month"
 
-## 🛠️ Technical Details
+## Technical Details
 
 ### Requirements
 - Python 3.7+
-- No external dependencies (uses only Python standard library)
+- No external dependencies (stdlib only)
+- Chart.js 4.4.1 (loaded via CDN)
 
 ### Data Format
-- CSV files for portability and simplicity
-- Comprehensive metadata schema
-- Git-friendly format
+- CSV with 19-field metadata schema
+- ~350 bytes per call
+- 50MB target = ~145,000 calls
+- Git-friendly text format
 
-### Simulation Parameters
+### Performance
+- **Generation**: ~8-12 minutes to 50MB
+- **Throughput**: ~200-250 calls/second sustained
+- **Memory**: ~200-300MB peak
+- **Report Updates**: ~2-5 seconds per regeneration
 
-**Customer Archetypes**:
+### Customer Archetypes
 - Light Users (70%): 5-20 calls/day
 - Power Users (20%): 50-150 calls/day
 - Heavy Users (10%): 200-500 calls/day
 
-**Subscription Tiers**:
+### Subscription Tiers
 - Starter: $29/month
 - Pro: $99/month
 - Enterprise: $299/month
 
-**AI Providers & Models**:
-- OpenAI: gpt-4, gpt-4-turbo
-- Anthropic: claude-opus-4, claude-sonnet-4
-- Bedrock: claude-instant, claude-v2
+## Use Cases by Role
 
-## 📚 Documentation
+**FinOps Practitioners**: Understand AI costs across 7 providers, optimize spending, forecast budgets, set threshold alerts
 
-- [`specs/project-spec.md`](specs/project-spec.md) - Complete project specification
+**Product Managers**: Analyze feature economics, track adoption patterns, prioritize investments with ROI data
+
+**Finance Teams**: Track customer profitability, implement chargebacks, optimize pricing with 4 model comparisons
+
+**Engineering Teams**: Choose optimal models, detect anomalies in real-time, improve efficiency with OTEL integration
+
+**Executives**: Understand total AI spend, margin impact, strategic opportunities with portfolio risk assessment
+
+## Documentation
+
 - [`specs/README.md`](specs/README.md) - Specification navigation guide
-- [`src/README.md`](src/README.md) - Implementation details
+- [`specs/architecture.md`](specs/architecture.md) - System design & continuous updates
+- [`specs/simulators.md`](specs/simulators.md) - Traffic simulation (7 providers, 11 patterns)
+- [`specs/analyzers.md`](specs/analyzers.md) - Analysis engines & real-time alerting
+- [`specs/integration.md`](specs/integration.md) - OTEL & Chart Builder integration
+- [`specs/reports.md`](specs/reports.md) - Continuous viewer & UI design
 
-## 🎓 Use Cases
-
-This showcase demonstrates how Revenium enables:
-
-1. **FinOps Practitioners**: Understand AI costs, optimize spending, forecast budgets
-2. **Product Managers**: Analyze feature economics, prioritize investments
-3. **Finance Teams**: Track profitability, implement chargebacks, optimize pricing
-4. **Engineering Teams**: Choose optimal models, detect anomalies, improve efficiency
-5. **Executives**: Understand total AI spend, margin impact, strategic opportunities
-
-## 🎯 Traffic Pattern Simulators
-
-### Base Traffic (`simulator/core.py`)
-Standard baseline with realistic customer archetypes and subscription tiers.
-
-### Seasonal Pattern (`scenarios/seasonal_pattern.py`)
-Cyclical usage with weekly, daily, and monthly patterns. Perfect for enterprise SaaS.
-
-### Burst Traffic (`scenarios/burst_traffic.py`)
-Unpredictable bursts (5x-20x) concentrated in short windows. Models batch processing and API integrations.
-
-### Gradual Decline (`scenarios/gradual_decline.py`)
-Decreasing usage with churn simulation. Demonstrates retention analysis scenarios.
-
-**See [`src/simulator/scenarios/README.md`](src/simulator/scenarios/README.md) for detailed documentation.**
-
----
-
-## 🔑 Key Differentiators
+## Key Differentiators
 
 ### Without Revenium
-❌ Manual log parsing from multiple sources
-❌ Delayed cost visibility (hours/days)
-❌ Complex ETL pipelines
-❌ No standardized metadata schema
-❌ Provider-specific integration code
+- Manual log parsing from multiple sources
+- Delayed cost visibility (hours/days)
+- Complex ETL pipelines for each provider
+- No standardized metadata schema
+- Provider-specific integration code
+- Static reports requiring manual refresh
 
 ### With Revenium
-✅ Automatic capture of all AI calls
-✅ Real-time cost visibility
-✅ Standardized metadata across providers
-✅ Single integration point
-✅ Built-in aggregation and analysis
-✅ Handles diverse traffic patterns automatically
+- Automatic capture across 7 providers
+- Real-time cost visibility with live updates
+- Standardized metadata (19 fields)
+- Single integration point (5-minute setup)
+- Built-in aggregation and analysis
+- Live-updating reports with progress tracking
+- OTEL integration for unified observability
+- Proactive alerting before cost overruns
 
-## 🚧 Current Implementation Status
+## Implementation Status
 
-**Completed**:
-- ✅ 4 traffic pattern simulators (base, seasonal, burst, decline)
-- ✅ Master simulator runner (`run_all_simulators.py`)
-- ✅ 8 comprehensive analyzers (5 FinOps + 3 UBR)
-- ✅ HTML report generation utilities
-- ✅ Interactive web viewer with auto-processing
-- ✅ Revenium integration examples
-- ✅ Metadata builder library
-- ✅ Scenario demonstrations
-- ✅ Comprehensive documentation
+Current state: **Specifications Complete, Implementation Deleted**
 
-**Available Analyzers**:
-- ✅ FinOps: Understanding, Performance, Real-time, Optimization, Alignment
-- ✅ UBR: Customer Profitability, Pricing Strategy, Feature Economics
+The repository contains comprehensive specifications for:
+- 7-provider simulator with 11 traffic patterns
+- 8 analysis engines (5 FinOps + 3 UBR)
+- Continuous monitoring server with live updates
+- Real-time alerting system
+- OTEL integration patterns
+- Multi-dimensional Chart Builder
+- Interactive web viewer with auto-refresh
 
-## 📝 License
+Ready for implementation from detailed specifications.
 
-This is a demonstration project for showcasing Revenium's FinOps and UBR capabilities.
+## License
 
-## 🤝 Contributing
+Demonstration project for showcasing Revenium's FinOps and UBR capabilities.
 
-This is a showcase project. For questions or feedback about Revenium, visit [revenium.io](https://revenium.io)
+## Contact
 
----
-
-**Built with ❤️ to demonstrate Revenium's AI Cost Intelligence Platform**
+For questions about Revenium, visit [revenium.io](https://revenium.io)

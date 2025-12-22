@@ -169,6 +169,264 @@ tracker.track_ai_call(
 )
 ```
 
+## OpenTelemetry Integration
+
+**File**: `showcase/instrumentation/revenium_otel.py`
+
+**Purpose**: Leverage existing OpenTelemetry infrastructure for Revenium tracking
+
+**Key Differentiator**: Revenium accepts OTEL AI metrics in JSON format, enabling seamless integration with existing observability stacks. This positions Revenium as a unified observability + FinOps platform, not just a billing tool.
+
+### Benefits for Engineering Teams
+
+- **No Separate Instrumentation**: Leverage existing OTEL investment
+- **Unified Platform**: Observability + FinOps in one system
+- **Developer-Friendly**: 5-minute integration setup
+- **Trace-Level Analytics**: Correlate AI costs with end-to-end request traces
+- **Standard Protocol**: Uses OpenTelemetry semantic conventions
+
+### OTEL Integration Pattern
+
+```python
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+class ReveniumOTELIntegration:
+    """
+    OpenTelemetry integration for Revenium
+
+    Demonstrates:
+    - OTEL AI metrics in JSON format
+    - Trace-level analytics for detailed observability
+    - Distributed trace ID correlation
+    - Seamless integration with existing spans
+    """
+
+    def __init__(self, revenium_endpoint: str, api_key: str):
+        """
+        Initialize OTEL integration with Revenium
+
+        Args:
+            revenium_endpoint: Revenium OTEL collector endpoint
+            api_key: Revenium API key for authentication
+        """
+        # Configure OTEL to send to Revenium
+        self.tracer_provider = TracerProvider()
+
+        # Revenium OTEL collector endpoint
+        otlp_exporter = OTLPSpanExporter(
+            endpoint=revenium_endpoint,
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+
+        self.tracer_provider.add_span_processor(
+            BatchSpanProcessor(otlp_exporter)
+        )
+
+        trace.set_tracer_provider(self.tracer_provider)
+        self.tracer = trace.get_tracer(__name__)
+
+    def track_ai_completion(
+        self,
+        ai_response,
+        context: Dict[str, Any]
+    ) -> str:
+        """
+        Track AI completion using OpenTelemetry spans
+
+        Args:
+            ai_response: Response object from AI provider
+            context: Request context with customer/product metadata
+
+        Returns:
+            trace_id: Distributed trace ID for correlation
+        """
+        with self.tracer.start_as_current_span("ai.completion") as span:
+            # Standard OTEL AI semantic conventions
+            span.set_attribute("ai.system", "openai")  # or "anthropic", "bedrock"
+            span.set_attribute("ai.request.model", ai_response.model)
+            span.set_attribute("ai.usage.prompt_tokens", ai_response.usage.prompt_tokens)
+            span.set_attribute("ai.usage.completion_tokens", ai_response.usage.completion_tokens)
+            span.set_attribute("ai.usage.total_tokens", ai_response.usage.total_tokens)
+
+            # Revenium-specific attributes for cost allocation
+            span.set_attribute("revenium.customer_id", context.get('customer_id'))
+            span.set_attribute("revenium.organization_id", context.get('organization_id'))
+            span.set_attribute("revenium.product_id", context.get('product_id'))
+            span.set_attribute("revenium.feature_id", context.get('feature_id'))
+            span.set_attribute("revenium.subscription_tier", context.get('subscription_tier'))
+            span.set_attribute("revenium.environment", context.get('environment', 'production'))
+
+            # Cost calculation
+            cost_usd = self._calculate_cost(
+                provider=ai_response.model.split('-')[0],
+                model=ai_response.model,
+                input_tokens=ai_response.usage.prompt_tokens,
+                output_tokens=ai_response.usage.completion_tokens
+            )
+            span.set_attribute("revenium.cost_usd", cost_usd)
+
+            # Trace correlation
+            span_context = span.get_span_context()
+            return format(span_context.trace_id, '032x')
+
+    def _calculate_cost(self, provider: str, model: str, input_tokens: int, output_tokens: int) -> float:
+        """Calculate cost based on provider pricing"""
+        # Simplified cost calculation
+        pricing = {
+            'openai': {'gpt-4': {'input': 0.03, 'output': 0.06}},
+            'anthropic': {'claude-sonnet-4': {'input': 0.003, 'output': 0.015}}
+        }
+
+        rates = pricing.get(provider, {}).get(model, {'input': 0, 'output': 0})
+        return (input_tokens * rates['input'] + output_tokens * rates['output']) / 1000
+```
+
+### Usage Example with OpenAI
+
+```python
+from opentelemetry import trace
+import openai
+
+# Initialize Revenium OTEL integration
+revenium_otel = ReveniumOTELIntegration(
+    revenium_endpoint="https://otel.revenium.io/v1/traces",
+    api_key="your-revenium-api-key"
+)
+
+# Make AI call within OTEL context
+tracer = trace.get_tracer(__name__)
+
+with tracer.start_as_current_span("user.request") as parent_span:
+    # Parent span tracks entire user request
+    parent_span.set_attribute("user.id", "user_123")
+    parent_span.set_attribute("request.path", "/api/chat")
+
+    # Make OpenAI call
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": "Explain quantum computing"}]
+    )
+
+    # Track with Revenium (creates child span)
+    trace_id = revenium_otel.track_ai_completion(
+        ai_response=response,
+        context={
+            'customer_id': 'cust_0001',
+            'organization_id': 'org_001',
+            'product_id': 'product_a',
+            'feature_id': 'chat',
+            'subscription_tier': 'pro',
+            'environment': 'production'
+        }
+    )
+
+    print(f"Trace ID: {trace_id}")
+    # Revenium automatically correlates AI costs with distributed trace
+```
+
+### Trace-Level Analytics Capabilities
+
+**End-to-End Request Correlation**:
+```
+User Request (trace_id: abc123)
+├─ API Gateway (span_id: 001)
+├─ Authentication (span_id: 002)
+├─ Business Logic (span_id: 003)
+│  ├─ Database Query (span_id: 004)
+│  └─ AI Completion (span_id: 005) ← Revenium cost tracking
+└─ Response Formatting (span_id: 006)
+```
+
+With OTEL integration, Revenium provides:
+
+1. **Cost Attribution to Customer Journeys**:
+   - Link AI expenses to specific user workflows
+   - Understand which user actions trigger expensive AI calls
+   - Optimize high-cost user paths
+
+2. **Performance + Cost Analysis**:
+   - Correlate latency with cost
+   - Identify slow AND expensive operations
+   - Optimize for both speed and budget
+
+3. **Debug Cost Issues with Full Context**:
+   - "Why did this request cost $5?" → See full trace
+   - Identify cascading AI calls in distributed workflows
+   - Root cause analysis with complete observability
+
+4. **Distributed Workflow Analysis**:
+   - Track AI costs across microservices
+   - Multi-service AI orchestration costs
+   - End-to-end cost of complex workflows
+
+### Automatic Model Detection
+
+Revenium's OTEL integration automatically detects AI model usage from span attributes:
+
+```python
+# Revenium automatically extracts:
+# - Provider: From ai.system attribute
+# - Model: From ai.request.model attribute
+# - Tokens: From ai.usage.* attributes
+# - Cost: Calculated using built-in pricing tables
+
+# No manual instrumentation needed beyond standard OTEL conventions
+```
+
+### Integration with Existing OTEL Collectors
+
+```yaml
+# otel-collector-config.yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+
+exporters:
+  # Send to Revenium for cost tracking
+  otlp/revenium:
+    endpoint: "https://otel.revenium.io"
+    headers:
+      Authorization: "Bearer ${REVENIUM_API_KEY}"
+
+  # Also send to existing observability platform
+  jaeger:
+    endpoint: "jaeger:14250"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/revenium, jaeger]  # Dual export
+```
+
+### Business Value
+
+**For Engineering Teams**:
+- No new instrumentation libraries to learn
+- Reuse existing OTEL investment
+- Single source of truth for observability + costs
+- Standard protocol (no vendor lock-in)
+
+**For FinOps Teams**:
+- Cost data automatically includes trace context
+- Debug expensive requests with full observability
+- Link costs to specific customer actions
+- No dependency on engineering for cost tracking
+
+**For Product Teams**:
+- Understand cost-per-feature with real usage patterns
+- Identify expensive user workflows
+- Optimize product features based on cost + usage data
+
 ## Metadata Builders
 
 **File**: `showcase/metadata/builders.py`
@@ -468,6 +726,204 @@ def feature_metrics(calls: List[Dict]) -> Dict[str, Dict]:
 
     return result
 ```
+
+## Advanced Multi-Dimensional Analysis
+
+**Purpose**: Showcase Revenium's sophisticated multi-dimensional grouping and Chart Builder capabilities for collaborative, reusable analysis.
+
+**Key Differentiator**: Unlike simple query patterns, Revenium enables teams to build custom analysis views once and reuse them forever, with cross-functional insights combining cost, performance, and usage metrics.
+
+### Multi-Dimensional Grouping
+
+Revenium supports simultaneous grouping across multiple dimensions for comprehensive analysis:
+
+**Available Grouping Dimensions**:
+- **Organizational**: Agents, teams, organizations, products
+- **Technical**: AI models, providers, API keys, credentials
+- **Behavioral**: Task/trace types, workspaces (with custom display names)
+- **Financial**: Subscription tiers, cost centers, billing entities
+- **Operational**: Environments, regions, availability zones
+
+### Chart Builder Pattern
+
+**File**: `showcase/queries/chart_builder.py`
+
+Revenium's Chart Builder enables saving and reusing chart configurations across teams:
+
+```python
+class ReveniumChartBuilder:
+    """
+    Build and save reusable chart configurations
+
+    Demonstrates Revenium's Chart Builder capability:
+    - Save chart configurations for recurring analysis
+    - Query against completion metrics
+    - Multiple visualization options
+    - Team-wide sharing and collaboration
+    """
+
+    def __init__(self, revenium_api_key: str):
+        self.api_key = revenium_api_key
+        self.endpoint = "https://api.revenium.io/v1/charts"
+
+    def build_multi_dimensional_chart(
+        self,
+        dimensions: List[str],
+        metrics: List[str],
+        filters: Dict[str, Any],
+        visualization_type: str,
+        name: str
+    ) -> str:
+        """
+        Create and save a multi-dimensional chart configuration
+
+        Args:
+            dimensions: Grouping dimensions (e.g., ['organization_id', 'product_id', 'model'])
+            metrics: Metrics to analyze (e.g., ['cost_usd', 'tokens', 'latency_ms'])
+            filters: Filter criteria (e.g., {'environment': 'production'})
+            visualization_type: Chart type ('stacked_bar', 'line', 'heatmap', 'treemap')
+            name: Descriptive name for saved chart
+
+        Returns:
+            chart_id: Unique identifier for reusing this configuration
+        """
+        config = {
+            'name': name,
+            'dimensions': dimensions,
+            'metrics': metrics,
+            'filters': filters,
+            'visualization': visualization_type,
+            'aggregation': 'sum',  # or 'avg', 'count', 'min', 'max'
+            'time_range': 'last_30_days',
+            'refresh_interval': 'hourly'
+        }
+
+        # Save to Revenium for team-wide access
+        # In production: POST to Revenium API
+        # response = requests.post(self.endpoint, json=config, headers={...})
+        # return response.json()['chart_id']
+
+        return f"chart_{hash(str(config))}"
+```
+
+### Multi-Dimensional Query Examples
+
+**Example 1: Organization → Product → Model Cost Breakdown**
+```python
+# Build a 3-dimensional cost analysis
+chart_id = builder.build_multi_dimensional_chart(
+    dimensions=['organization_id', 'product_id', 'model'],
+    metrics=['cost_usd', 'total_tokens', 'call_count'],
+    filters={'environment': 'production'},
+    visualization_type='treemap',
+    name='Org-Product-Model Cost Hierarchy'
+)
+
+# Result enables queries like:
+# - "Which organization spends most on AI?"
+# - "What models does product_a use across all orgs?"
+# - "Compare model costs within org_001's product_b"
+```
+
+**Example 2: Customer Profitability by Tier and Feature**
+```python
+chart_id = builder.build_multi_dimensional_chart(
+    dimensions=['subscription_tier', 'feature_id', 'customer_id'],
+    metrics=['cost_usd', 'revenue_attributed'],
+    filters={'environment': 'production'},
+    visualization_type='stacked_bar',
+    name='Customer Profitability by Tier and Feature'
+)
+
+# Insights:
+# - Which features are profitable per tier?
+# - Which customers within each tier are unprofitable?
+# - Feature adoption patterns by tier
+```
+
+**Example 3: Cross-Functional Performance Analysis**
+```python
+chart_id = builder.build_multi_dimensional_chart(
+    dimensions=['model', 'task_type', 'provider'],
+    metrics=['cost_usd', 'latency_ms', 'tokens_per_second'],
+    filters={
+        'environment': 'production',
+        'latency_ms': {'$lt': 5000}  # Only successful, fast calls
+    },
+    visualization_type='heatmap',
+    name='Model Performance Matrix'
+)
+
+# Combines cost + performance + usage:
+# - Most cost-efficient model per task type
+# - Latency vs cost tradeoffs
+# - Provider performance comparison
+```
+
+**Example 4: Workspace-Level Cost Allocation**
+```python
+chart_id = builder.build_multi_dimensional_chart(
+    dimensions=['workspace', 'agent_type', 'api_credential'],
+    metrics=['cost_usd', 'call_count'],
+    filters={'environment': 'production'},
+    visualization_type='stacked_bar',
+    name='Workspace Cost Allocation (Custom Display Names)'
+)
+
+# Use custom workspace display names for readability:
+# - "Engineering Team A" instead of "workspace_123"
+# - "Customer Success Bot" instead of "agent_cs_001"
+# - Clear cost center allocation for chargeback
+```
+
+### Reusing Saved Charts
+
+```python
+def load_and_execute_chart(chart_id: str, date_range: Dict) -> Dict:
+    """
+    Load a saved chart configuration and execute with new parameters
+
+    Args:
+        chart_id: Previously saved chart ID
+        date_range: Override time range (e.g., {'start': '2025-11-01', 'end': '2025-11-30'})
+
+    Returns:
+        Chart data ready for visualization
+    """
+    # Load saved configuration
+    config = revenium.charts.get(chart_id)
+
+    # Override time range for this execution
+    config['time_range'] = date_range
+
+    # Execute query
+    results = revenium.query.execute(config)
+
+    return results
+
+# Team collaboration:
+# - Finance team saves monthly profitability charts
+# - Engineering team reuses with different date ranges
+# - Executives get consistent reporting across months
+```
+
+### Business Impact
+
+**Collaboration Benefits**:
+- **Save Once, Reuse Forever**: Build complex analysis views and share across teams
+- **Consistency**: Everyone uses same definitions and groupings
+- **Efficiency**: No need to rebuild queries monthly
+- **Self-Service**: Non-technical teams can run saved charts with different parameters
+
+**Cross-Functional Analysis**:
+- Combine cost (FinOps) + performance (Engineering) + usage (Product) in single view
+- Unified metrics across organizational boundaries
+- Data-driven decision making with complete context
+
+**Workspace Collaboration**:
+- Custom display names for readability
+- Team-specific views and filters
+- Shared dashboards for stakeholder reporting
 
 ## Business Scenarios
 

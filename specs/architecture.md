@@ -176,32 +176,128 @@ class Analyzer:
 ### 5. Web Server Layer
 **Location**: `viewer/serve.py`
 
-**Purpose**: Serve HTML reports with auto-processing capabilities
+**Purpose**: Continuously monitor and serve updated HTML reports with real-time auto-processing
 
 **Features**:
 - Simple Python HTTP server (port 8000)
-- Data freshness detection
-- Auto-runs analyzers when data changes
+- **Continuous CSV monitoring**: Watches file size changes in real-time
+- **Auto-analyzer execution**: Automatically runs analyzers when CSV grows
+- **Progressive updates**: Regenerates reports as data accumulates to 50MB
+- **Background monitoring thread**: Non-blocking file watching
 - Static file serving
 - No configuration required
 
-**Workflow**:
-1. Check if `data/simulated_calls.csv` exists
-2. Compare timestamps with existing reports
-3. Run analyzers if data is newer
-4. Serve reports via HTTP
+**Continuous Update Workflow**:
+1. **Startup**: Check if `data/simulated_calls.csv` exists
+2. **Initial Analysis**: Run all analyzers on existing data
+3. **Background Monitor**: Start file watcher thread
+4. **Watch Loop** (runs every 10 seconds):
+   - Check CSV file size
+   - If size increased since last check:
+     - Run all analyzers with updated data
+     - Regenerate HTML reports
+     - Update manifest.json
+   - Continue monitoring
+5. **Serve HTTP**: Serve latest reports on port 8000
+6. **Stop Condition**: Exit when CSV reaches 50MB and simulator completes
+
+**File Watching Implementation**:
+```python
+import os
+import time
+import threading
+
+class ContinuousReportServer:
+    def __init__(self, csv_path='data/simulated_calls.csv'):
+        self.csv_path = csv_path
+        self.last_size = 0
+        self.max_size_mb = 50
+        self.monitoring = True
+
+    def get_csv_size_mb(self):
+        if os.path.exists(self.csv_path):
+            return os.path.getsize(self.csv_path) / (1024 * 1024)
+        return 0
+
+    def monitor_and_analyze(self):
+        """Background thread: continuously monitor CSV and regenerate reports"""
+        while self.monitoring:
+            current_size = self.get_csv_size_mb()
+
+            if current_size != self.last_size:
+                print(f"📊 CSV updated: {current_size:.2f} MB")
+                print(f"🔄 Regenerating reports...")
+
+                # Run all analyzers
+                run_all_analyzers()
+
+                print(f"✅ Reports updated at {current_size:.2f} MB")
+                self.last_size = current_size
+
+                # Stop monitoring if 50MB reached
+                if current_size >= self.max_size_mb:
+                    print(f"🎯 Target size reached. Monitoring complete.")
+                    self.monitoring = False
+
+            time.sleep(10)  # Check every 10 seconds
+
+    def start(self):
+        # Start background monitor thread
+        monitor_thread = threading.Thread(target=self.monitor_and_analyze)
+        monitor_thread.daemon = True
+        monitor_thread.start()
+
+        # Start HTTP server
+        start_http_server()
+```
 
 ### 6. User Interface Layer
 **Location**: `viewer/index.html`
 
-**Purpose**: Interactive web-based report viewer
+**Purpose**: Interactive web-based report viewer with live updates
 
 **Features**:
 - Modern animated gradient background
 - Category-based navigation (FinOps vs UBR)
 - Responsive card-based layout
+- **Auto-refresh**: JavaScript polls for manifest changes every 15 seconds
+- **Live progress indicator**: Shows current CSV size and generation progress
+- **Update notifications**: Toast notifications when new reports are available
 - Hover effects and transitions
 - Mobile-optimized
+
+**Live Update Features**:
+```javascript
+// Auto-refresh implementation
+let lastManifestUpdate = 0;
+let currentCsvSize = 0;
+
+function checkForUpdates() {
+    fetch('manifest.json?_=' + Date.now())
+        .then(response => response.json())
+        .then(manifest => {
+            const manifestTime = new Date(manifest.generated_at).getTime();
+
+            // Check if manifest was updated
+            if (manifestTime > lastManifestUpdate) {
+                lastManifestUpdate = manifestTime;
+                currentCsvSize = manifest.csv_size_mb;
+
+                // Show notification
+                showUpdateNotification(currentCsvSize);
+
+                // Reload reports list
+                refreshReportsList(manifest);
+
+                // Update progress bar
+                updateProgressBar(currentCsvSize, 50);
+            }
+        });
+}
+
+// Poll every 15 seconds
+setInterval(checkForUpdates, 15000);
+```
 
 **Design Elements**:
 - Animated gradients with keyframes
@@ -209,6 +305,9 @@ class Analyzer:
 - Card hover transformations
 - Badge system for highlights
 - Gradient text effects
+- **Progress bar**: 0-50MB visual indicator
+- **Live timestamp**: "Last updated: 2 minutes ago"
+- **Auto-reload badge**: Blinks when new data detected
 
 ## Data Flow
 
@@ -244,24 +343,60 @@ class Analyzer:
 8. Manifest updated
 ```
 
-### Viewing Flow
+### Continuous Viewing Flow
 ```
-1. User starts web server
+1. User starts web server (viewer/serve.py)
    ↓
-2. Server checks data freshness
+2. Server performs initial analysis on existing data
    ↓
-3. Auto-runs analyzers if needed
+3. Background monitor thread starts (checks CSV every 10s)
    ↓
-4. Server starts on port 8000
+4. HTTP server starts on port 8000
    ↓
 5. User opens browser to localhost:8000
    ↓
-6. Viewer loads manifest.json
+6. Viewer loads manifest.json with initial reports
    ↓
-7. Reports displayed with navigation
+7. JavaScript auto-refresh starts (polls every 15s)
    ↓
-8. User browses interactive reports
+8. [CONTINUOUS LOOP - Server Side]
+   └─ Monitor detects CSV size increase
+      ↓
+      Run all analyzers with updated data
+      ↓
+      Regenerate HTML reports
+      ↓
+      Update manifest.json with new timestamp
+      ↓
+      Continue monitoring (until 50MB reached)
+   ↓
+9. [CONTINUOUS LOOP - Client Side]
+   └─ JavaScript polls manifest.json
+      ↓
+      Detect manifest timestamp change
+      ↓
+      Show update notification toast
+      ↓
+      Refresh reports list with new data
+      ↓
+      Update progress bar (X MB / 50 MB)
+      ↓
+      Continue polling (every 15 seconds)
+   ↓
+10. User sees live-updating reports as data grows
+    ↓
+11. Final state: CSV reaches 50MB, monitoring stops
+    ↓
+12. Viewer shows complete dataset with all reports
 ```
+
+**Key Continuous Update Features**:
+- **Server monitors CSV**: Background thread watches file size every 10 seconds
+- **Auto-regeneration**: Reports regenerate automatically when new data detected
+- **Client polls manifest**: JavaScript checks for updates every 15 seconds
+- **Live notifications**: Toast messages inform user of new reports
+- **Progress tracking**: Visual progress bar shows 0-50MB generation status
+- **Non-blocking**: Server continues serving while monitoring in background
 
 ## Integration Points
 

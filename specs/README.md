@@ -4,6 +4,30 @@
 
 This folder contains detailed, human-readable specifications that serve as the authoritative reference for the Revenium FinOps Showcase. These specifications are designed to be read by both humans and AI agents building or extending the system.
 
+## Recent Enhancements
+
+The specifications have been enhanced to showcase additional Revenium platform capabilities:
+
+1. **Real-Time Alerting** (`analyzers.md` - Real-Time Decision Making):
+   - Budget threshold alerts with configurable notification channels (Email, Slack)
+   - Portfolio risk assessment with trending indicators
+   - Proactive cost management preventing overruns before they happen
+   - Cumulative usage tracking with bulk anomaly queries
+
+2. **Multi-Dimensional Analysis & Chart Builder** (`integration.md`):
+   - Save and reuse chart configurations across teams
+   - Multi-dimensional grouping (organization → product → model → customer)
+   - Cross-functional analysis combining cost, performance, and usage metrics
+   - Team collaboration with workspace-level custom display names
+
+3. **OpenTelemetry Integration** (`integration.md`):
+   - Accept OTEL AI metrics in JSON format
+   - Trace-level analytics for detailed observability
+   - Correlate AI costs with distributed traces
+   - Unified observability + FinOps platform (5-minute setup)
+
+These enhancements position the showcase to demonstrate Revenium as more than just a billing tool—it's a comprehensive platform for real-time cost management, collaborative analysis, and unified observability.
+
 ## Specification Files
 
 ### 📐 [architecture.md](architecture.md)
@@ -87,7 +111,7 @@ Complete specification of all 8 analyzers (5 FinOps + 3 UBR).
 - **5 FinOps Analyzers**:
   1. Understanding Usage & Cost (allocation, forecasting, efficiency)
   2. Performance Tracking (latency, efficiency, SLAs)
-  3. Real-Time Decision Making (anomalies, threshold violations)
+  3. Real-Time Decision Making (anomalies, threshold violations, **proactive alerting**)
   4. Rate Optimization (reserved capacity, model switching)
   5. Organizational Alignment (multi-tenant, chargeback/showback)
 - **3 UBR Analyzers**:
@@ -95,6 +119,7 @@ Complete specification of all 8 analyzers (5 FinOps + 3 UBR).
   2. Pricing Strategy (4 pricing model comparisons)
   3. Feature Economics (ROI, investment decisions)
 - Key metrics and recommendations for each
+- **NEW: Real-time alerting capabilities** (budget thresholds, Slack/email notifications, portfolio risk assessment)
 - Common utilities and patterns
 - Performance optimization techniques
 
@@ -104,6 +129,7 @@ Complete specification of all 8 analyzers (5 FinOps + 3 UBR).
 - Modifying existing analysis
 - Troubleshooting analysis results
 - Optimizing performance
+- **Configuring real-time alerts and notifications**
 
 ---
 
@@ -140,9 +166,11 @@ Reference implementations and best practices for integrating Revenium.
 
 **What You'll Find**:
 - Basic instrumentation examples
+- **NEW: OpenTelemetry integration pattern** (OTEL AI metrics, trace-level analytics, unified observability)
 - Metadata builder fluent API
 - Hierarchical tagging strategies
 - Integration with OpenAI, Anthropic APIs
+- **NEW: Multi-dimensional grouping & Chart Builder** (save/reuse chart configs, team collaboration)
 - Query pattern examples
 - Business scenario walkthroughs
 - Error handling patterns (retry, circuit breaker)
@@ -154,6 +182,8 @@ Reference implementations and best practices for integrating Revenium.
 - Learning SDK usage patterns
 - Implementing error handling
 - Solving business scenarios
+- **Setting up OpenTelemetry integration**
+- **Building reusable multi-dimensional analysis views**
 
 ---
 
@@ -253,6 +283,9 @@ Complete specification of technical requirements and constraints.
 | Deploy to production | `workflows.md` | `requirements.md`, `architecture.md` |
 | Troubleshoot issues | `workflows.md` | Relevant component spec |
 | Integrate Revenium SDK | `integration.md` | `data-schema.md` |
+| **Set up real-time alerts** | `analyzers.md` (Real-Time) | `integration.md` |
+| **Configure OTEL integration** | `integration.md` (OpenTelemetry) | `data-schema.md` |
+| **Build multi-dimensional charts** | `integration.md` (Chart Builder) | `analyzers.md` |
 | Optimize performance | `requirements.md` | `workflows.md`, component specs |
 
 ### By Component
