@@ -1,5 +1,6 @@
 """HTML Report Generation Utilities."""
 
+import os
 from datetime import datetime
 from typing import Dict, Any, List
 
@@ -177,5 +178,6 @@ def generate_understanding_report(data: Dict[str, Any], output_path: str):
 </body>
 </html>"""
 
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w') as f:
         f.write(html)
