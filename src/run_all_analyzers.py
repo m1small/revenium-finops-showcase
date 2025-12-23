@@ -21,7 +21,12 @@ from analyzers.ubr.pricing import PricingStrategyAnalyzer
 from analyzers.ubr.features import FeatureEconomicsAnalyzer
 
 from analyzers.common import load_calls_from_csv, format_currency, format_large_number
-from utils.html_generator import generate_understanding_report
+from utils.html_generator import (
+    generate_understanding_report, generate_performance_report,
+    generate_realtime_report, generate_optimization_report,
+    generate_alignment_report, generate_profitability_report,
+    generate_pricing_report, generate_features_report
+)
 
 
 def generate_generic_report(title: str, description: str, data: dict, output_path: str):
@@ -140,63 +145,63 @@ def main():
     print(f"Loaded {len(calls):,} calls")
     print()
 
-    # Define all 8 reports with their analyzer classes
+    # Define all 8 reports with their analyzer classes and HTML generators
     reports = [
         {
             'name': 'Understanding Usage & Cost',
             'filename': 'understanding.html',
             'description': 'Cost allocation, forecasting, and efficiency analysis',
             'analyzer_class': UnderstandingAnalyzer,
-            'use_custom_html': True
+            'html_generator': generate_understanding_report
         },
         {
             'name': 'Performance Tracking',
             'filename': 'performance.html',
             'description': 'Model efficiency, latency percentiles, SLA compliance',
             'analyzer_class': PerformanceAnalyzer,
-            'use_custom_html': False
+            'html_generator': generate_performance_report
         },
         {
             'name': 'Real-Time Decision Making',
             'filename': 'realtime.html',
             'description': 'Anomaly detection, threshold alerts, portfolio risk',
             'analyzer_class': RealtimeAnalyzer,
-            'use_custom_html': False
+            'html_generator': generate_realtime_report
         },
         {
             'name': 'Rate Optimization',
             'filename': 'optimization.html',
             'description': 'Reserved capacity, model switching opportunities',
             'analyzer_class': OptimizationAnalyzer,
-            'use_custom_html': False
+            'html_generator': generate_optimization_report
         },
         {
             'name': 'Organizational Alignment',
             'filename': 'alignment.html',
             'description': 'Multi-tenant tracking, chargeback/showback',
             'analyzer_class': AlignmentAnalyzer,
-            'use_custom_html': False
+            'html_generator': generate_alignment_report
         },
         {
             'name': 'Customer Profitability',
             'filename': 'profitability.html',
             'description': 'Margin analysis, unprofitable customer detection',
             'analyzer_class': CustomerProfitabilityAnalyzer,
-            'use_custom_html': False
+            'html_generator': generate_profitability_report
         },
         {
             'name': 'Pricing Strategy',
             'filename': 'pricing.html',
             'description': '4 pricing model comparisons, revenue projections',
             'analyzer_class': PricingStrategyAnalyzer,
-            'use_custom_html': False
+            'html_generator': generate_pricing_report
         },
         {
             'name': 'Feature Economics',
             'filename': 'features.html',
             'description': 'Feature profitability, investment recommendations',
             'analyzer_class': FeatureEconomicsAnalyzer,
-            'use_custom_html': False
+            'html_generator': generate_features_report
         }
     ]
 
@@ -211,15 +216,14 @@ def main():
             analyzer = report['analyzer_class'](csv_path)
             results = analyzer.analyze()
 
-            # Generate HTML report
-            if report['use_custom_html']:
-                generate_understanding_report(results, output_path)
-            else:
-                generate_generic_report(report['name'], report['description'], results, output_path)
+            # Generate HTML report using custom generator
+            report['html_generator'](results, output_path)
 
             print(f"  ✓ Generated: {output_path}")
         except Exception as e:
             print(f"  ✗ Error: {e}")
+            import traceback
+            traceback.print_exc()
             continue
 
     # Generate index page
