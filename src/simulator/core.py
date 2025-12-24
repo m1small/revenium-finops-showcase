@@ -123,18 +123,45 @@ class AICallSimulator:
         self.call_count = 0
 
     def _generate_customers(self, count: int) -> List[Dict[str, Any]]:
-        """Generate customer profiles with assigned archetypes and tiers."""
+        """Generate customer profiles with assigned archetypes and tiers.
+
+        Ensures all combinations of archetypes, tiers, and products are represented,
+        then fills remaining slots with weighted random selection.
+        """
         customers = []
-        for i in range(1, count + 1):
+        customer_num = 1
+
+        # First, ensure we have at least one customer for each combination
+        # of archetype, tier, and product to guarantee complete coverage
+        archetypes = list(self.CUSTOMER_ARCHETYPES.keys())
+        tiers = list(self.SUBSCRIPTION_TIERS.keys())
+        products = self.PRODUCTS
+
+        # Create one customer for each archetype/tier/product combination
+        for archetype in archetypes:
+            for tier in tiers:
+                for product in products:
+                    if customer_num <= count:
+                        customers.append({
+                            'customer_id': f'cust_{customer_num:04d}',
+                            'archetype': archetype,
+                            'tier': tier,
+                            'organization': self.rng.choice(self.ORGANIZATIONS),
+                            'product': product
+                        })
+                        customer_num += 1
+
+        # Fill remaining customers with weighted random selection
+        for i in range(customer_num, count + 1):
             # Assign archetype based on weights
             archetype = self.rng.choices(
-                list(self.CUSTOMER_ARCHETYPES.keys()),
+                archetypes,
                 weights=[a['weight'] for a in self.CUSTOMER_ARCHETYPES.values()]
             )[0]
 
             # Assign tier based on weights
             tier = self.rng.choices(
-                list(self.SUBSCRIPTION_TIERS.keys()),
+                tiers,
                 weights=[t['weight'] for t in self.SUBSCRIPTION_TIERS.values()]
             )[0]
 
@@ -145,6 +172,7 @@ class AICallSimulator:
                 'organization': self.rng.choice(self.ORGANIZATIONS),
                 'product': self.rng.choice(self.PRODUCTS)
             })
+
         return customers
 
     def _select_provider_and_model(self) -> tuple[str, str, Dict[str, float]]:

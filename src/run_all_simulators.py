@@ -50,9 +50,9 @@ def draw_progress_bar(current_mb: float, target_mb: float, width: int = 50) -> s
 
 
 def main():
-    """Run continuous generation until 50MB."""
+    """Run continuous generation until 2GB."""
     csv_path = 'data/simulated_calls.csv'
-    target_size_mb = 50.0
+    target_size_mb = 2048.0  # 2 GB
     seed = 42
 
     # Ensure data directory exists
