@@ -2,25 +2,25 @@
 """
 Live-Updating Viewer Server
 
-Serves HTML reports and monitors CSV file for changes.
-Auto-regenerates reports when data size increases.
+Serves HTML reports and monitors status:
+- CSV file size progress toward 2GB target
+- Report availability (checks file existence)
 """
 
 import http.server
 import socketserver
-import threading
+import json
 import time
 import os
 import sys
-import subprocess
 from datetime import datetime
 
 
-class ContinuousReportServer:
-    """Server with background monitoring for continuous report updates."""
+class StatusViewerServer:
+    """Server that displays live status of data generation and report availability."""
 
     def __init__(self, csv_path: str, report_dir: str, port: int = 8000):
-        """Initialize the continuous report server.
+        """Initialize the status viewer server.
 
         Args:
             csv_path: Path to the CSV file to monitor
@@ -30,9 +30,7 @@ class ContinuousReportServer:
         self.csv_path = csv_path
         self.report_dir = report_dir
         self.port = port
-        self.last_size_mb = 0.0
-        self.monitoring = True
-        self.monitor_thread = None
+        self.target_size_mb = 2048.0  # 2GB target
 
     def get_csv_size_mb(self) -> float:
         """Get current size of CSV file in MB."""
@@ -40,152 +38,474 @@ class ContinuousReportServer:
             return 0.0
         return os.path.getsize(self.csv_path) / (1024 * 1024)
 
-    def clear_browser_cache(self):
-        """Clear browser cache by serving no-cache headers."""
-        # Browser cache clearing is handled by NoCacheHandler headers
-        # This method exists for clarity in the startup flow
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Browser cache will be cleared via no-cache headers")
-
-    def run_analyzers(self):
-        """Run all analyzers to regenerate reports."""
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Running analyzers...")
-
+    def get_csv_line_count(self) -> int:
+        """Get number of lines in CSV file (excluding header)."""
+        if not os.path.exists(self.csv_path):
+            return 0
         try:
-            # Run the analyzer script
-            result = subprocess.run(
-                [sys.executable, 'run_all_analyzers.py'],
-                cwd='../src',
-                capture_output=True,
-                text=True,
-                timeout=300
-            )
+            with open(self.csv_path, 'r') as f:
+                return sum(1 for _ in f) - 1  # Subtract header
+        except:
+            return 0
 
-            if result.returncode == 0:
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Reports updated successfully")
-            else:
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Error updating reports:")
-                print(result.stderr)
+    def check_report_status(self) -> dict:
+        """Check which reports exist in the report directory."""
+        reports = {
+            'understanding.html': 'Understanding Usage & Cost',
+            'performance.html': 'Performance Tracking',
+            'realtime.html': 'Real-Time Decision Making',
+            'optimization.html': 'Rate Optimization',
+            'alignment.html': 'Organizational Alignment',
+            'profitability.html': 'Customer Profitability',
+            'pricing.html': 'Pricing Strategy',
+            'features.html': 'Feature Economics'
+        }
 
-        except subprocess.TimeoutExpired:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Analyzer timeout (>5 minutes)")
-        except Exception as e:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Error running analyzers: {e}")
+        status = {}
+        for filename, name in reports.items():
+            filepath = os.path.join(self.report_dir, filename)
+            status[filename] = {
+                'name': name,
+                'exists': os.path.exists(filepath),
+                'size_kb': os.path.getsize(filepath) / 1024 if os.path.exists(filepath) else 0
+            }
+        return status
 
-    def monitor_and_analyze(self):
-        """Background thread that monitors CSV and triggers analysis."""
-        print(f"[Monitor] Starting background monitor...")
+    def get_status_json(self) -> dict:
+        """Get current status as JSON."""
+        csv_size_mb = self.get_csv_size_mb()
+        line_count = self.get_csv_line_count()
 
-        while self.monitoring:
-            try:
-                current_size = self.get_csv_size_mb()
-
-                # Check if size has increased
-                if current_size > self.last_size_mb:
-                    size_increase = current_size - self.last_size_mb
-                    print(f"\n[Monitor] CSV size increased: +{size_increase:.2f} MB (now {current_size:.2f} MB)")
-
-                    # Run analyzers
-                    self.run_analyzers()
-
-                    # Update last size
-                    self.last_size_mb = current_size
-
-                    # Check if target reached
-                    if current_size >= 50.0:
-                        print(f"\n[Monitor] Target size reached ({current_size:.2f} MB). Stopping monitoring.")
-                        self.monitoring = False
-                        break
-
-                # Wait 10 seconds before next check
-                time.sleep(10)
-
-            except Exception as e:
-                print(f"[Monitor] Error: {e}")
-                time.sleep(10)
-
-        print(f"[Monitor] Background monitor stopped")
-
-    def start_monitor_thread(self):
-        """Start the background monitoring thread."""
-        self.monitor_thread = threading.Thread(target=self.monitor_and_analyze, daemon=True)
-        self.monitor_thread.start()
+        return {
+            'timestamp': datetime.now().isoformat(),
+            'csv': {
+                'size_mb': round(csv_size_mb, 2),
+                'target_mb': self.target_size_mb,
+                'progress_pct': min((csv_size_mb / self.target_size_mb) * 100, 100),
+                'line_count': line_count,
+                'complete': csv_size_mb >= self.target_size_mb
+            },
+            'reports': self.check_report_status()
+        }
 
     def serve(self):
         """Start the HTTP server."""
-        # Change to report directory
-        os.chdir(self.report_dir)
+        # Create custom handler that serves status API
+        parent = self
 
-        # Start monitoring thread
-        self.start_monitor_thread()
+        class StatusHandler(http.server.SimpleHTTPRequestHandler):
+            def do_GET(self):
+                # Status API endpoint
+                if self.path.startswith('/api/status'):
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                    self.send_header('Pragma', 'no-cache')
+                    self.send_header('Expires', '0')
+                    self.end_headers()
 
-        # Create HTTP server
-        Handler = http.server.SimpleHTTPRequestHandler
+                    status = parent.get_status_json()
+                    self.wfile.write(json.dumps(status, indent=2).encode())
+                    return
 
-        # Add custom headers for no-cache
-        class NoCacheHandler(Handler):
+                # Serve files from report directory
+                self.directory = parent.report_dir
+
+                # Add no-cache headers for HTML files
+                super().do_GET()
+
             def end_headers(self):
+                # No-cache headers for all responses
                 self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
                 self.send_header('Pragma', 'no-cache')
                 self.send_header('Expires', '0')
                 super().end_headers()
 
-        with socketserver.TCPServer(("", self.port), NoCacheHandler) as httpd:
+            def log_message(self, format, *args):
+                # Suppress access logs for cleaner output
+                pass
+
+        # Ensure report directory exists
+        os.makedirs(self.report_dir, exist_ok=True)
+
+        # Create status page if index.html doesn't exist
+        index_path = os.path.join(self.report_dir, 'index.html')
+        if not os.path.exists(index_path):
+            self.create_status_page(index_path)
+
+        with socketserver.TCPServer(("", self.port), StatusHandler) as httpd:
             print()
             print("=" * 80)
-            print("REVENIUM FINOPS SHOWCASE - LIVE VIEWER")
+            print("REVENIUM FINOPS SHOWCASE - STATUS VIEWER")
             print("=" * 80)
             print(f"Server running at http://localhost:{self.port}")
-            print(f"Monitoring: {self.csv_path}")
-            print(f"Reports: {self.report_dir}")
+            print(f"Monitoring CSV: {self.csv_path}")
+            print(f"Report directory: {self.report_dir}")
             print()
-            print("The viewer will auto-refresh every 15 seconds.")
-            print("Reports regenerate automatically when data grows.")
+            print("The viewer displays live status:")
+            print("  - CSV data generation progress (toward 2GB)")
+            print("  - Report availability (file existence)")
+            print()
+            print("Workflow:")
+            print("  1. Run simulator: cd ../src && python3 run_all_simulators.py")
+            print("  2. Run analyzers: cd ../src && python3 run_all_analyzers.py")
+            print("  3. View reports: Refresh browser to see updated status")
             print()
             print("Press Ctrl+C to stop")
             print("=" * 80)
+            print()
+
+            # Print initial status
+            status = self.get_status_json()
+            print(f"CSV Status: {status['csv']['size_mb']:.2f} MB / {status['csv']['target_mb']:.0f} MB ({status['csv']['progress_pct']:.1f}%)")
+            reports_ready = sum(1 for r in status['reports'].values() if r['exists'])
+            print(f"Reports Ready: {reports_ready}/8")
             print()
 
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
                 print("\n\nShutting down server...")
-                self.monitoring = False
-                if self.monitor_thread:
-                    self.monitor_thread.join(timeout=2)
                 print("Server stopped.")
+
+    def create_status_page(self, output_path: str):
+        """Create the main status/index page."""
+        html = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Revenium FinOps Showcase - Status Viewer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        .content {
+            padding: 40px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .progress-container {
+            background: #f5f5f5;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .progress-bar-container {
+            background: #e0e0e0;
+            height: 40px;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-top: 5px;
+        }
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .report-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .report-card.available {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        .report-card.unavailable {
+            border-color: #ff9800;
+            background: #fff8f0;
+            opacity: 0.7;
+        }
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+        .status-badge.complete {
+            background: #4CAF50;
+        }
+        .status-badge.pending {
+            background: #ff9800;
+        }
+        .report-card h3 {
+            margin-bottom: 10px;
+            color: #1a1a1a;
+            padding-right: 80px;
+        }
+        .report-card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .view-button {
+            display: inline-block;
+            background: #2196f3;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .view-button:hover {
+            background: #1976d2;
+        }
+        .view-button.disabled {
+            background: #ccc;
+            pointer-events: none;
+        }
+        .auto-refresh {
+            text-align: center;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-top: 20px;
+            color: #666;
+        }
+        .workflow {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+            margin-bottom: 30px;
+        }
+        .workflow h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        .workflow ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Revenium FinOps Showcase</h1>
+            <p>AI Cost Management & Usage-Based Revenue Analysis</p>
+        </div>
+
+        <div class="content">
+            <div class="workflow">
+                <h3>Workflow</h3>
+                <ol>
+                    <li><strong>Run simulator:</strong> <code>cd ../src && python3 run_all_simulators.py</code></li>
+                    <li><strong>Run analyzers:</strong> <code>cd ../src && python3 run_all_analyzers.py</code></li>
+                    <li><strong>View reports:</strong> Refresh browser to see updated status</li>
+                </ol>
+            </div>
+
+            <div class="section">
+                <h2>Data Generation Progress</h2>
+                <div class="progress-container">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress-bar" style="width: 0%">
+                            <span id="progress-text">0%</span>
+                        </div>
+                    </div>
+                    <div class="progress-stats">
+                        <div class="stat">
+                            <div class="stat-label">CSV Size</div>
+                            <div class="stat-value" id="csv-size">-</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Target</div>
+                            <div class="stat-value" id="csv-target">2048 MB</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Progress</div>
+                            <div class="stat-value" id="csv-progress">0%</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Total Calls</div>
+                            <div class="stat-value" id="csv-lines">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Analysis Reports</h2>
+                <div class="report-grid" id="report-grid">
+                    <!-- Reports will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="auto-refresh">
+                Last updated: <span id="last-update">-</span> |
+                Auto-refresh every 1 second
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function formatSize(mb) {
+            if (mb < 1) {
+                return (mb * 1024).toFixed(1) + ' KB';
+            } else if (mb >= 1024) {
+                return (mb / 1024).toFixed(2) + ' GB';
+            }
+            return mb.toFixed(2) + ' MB';
+        }
+
+        function formatNumber(num) {
+            return num.toLocaleString();
+        }
+
+        function updateStatus() {
+            fetch('/api/status?_=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    // Update CSV progress
+                    const csv = data.csv;
+                    document.getElementById('csv-size').textContent = formatSize(csv.size_mb);
+                    document.getElementById('csv-progress').textContent = csv.progress_pct.toFixed(1) + '%';
+                    document.getElementById('csv-lines').textContent = formatNumber(csv.line_count);
+
+                    const progressBar = document.getElementById('progress-bar');
+                    progressBar.style.width = csv.progress_pct + '%';
+                    document.getElementById('progress-text').textContent = csv.progress_pct.toFixed(1) + '%';
+
+                    // Update report grid
+                    const reportGrid = document.getElementById('report-grid');
+                    reportGrid.innerHTML = '';
+
+                    for (const [filename, info] of Object.entries(data.reports)) {
+                        const card = document.createElement('div');
+                        card.className = 'report-card ' + (info.exists ? 'available' : 'unavailable');
+
+                        const statusBadge = info.exists ?
+                            '<div class="status-badge complete">✓ Complete</div>' :
+                            '<div class="status-badge pending">⋯ Pending</div>';
+
+                        const viewButton = info.exists ?
+                            `<a href="${filename}" class="view-button">View Report →</a>` :
+                            '<span class="view-button disabled">Not Generated</span>';
+
+                        card.innerHTML = `
+                            ${statusBadge}
+                            <h3>${info.name}</h3>
+                            <p>${info.exists ? 'Report available (' + info.size_kb.toFixed(1) + ' KB)' : 'Run analyzers to generate'}</p>
+                            ${viewButton}
+                        `;
+
+                        reportGrid.appendChild(card);
+                    }
+
+                    // Update timestamp
+                    document.getElementById('last-update').textContent =
+                        new Date(data.timestamp).toLocaleTimeString();
+                })
+                .catch(e => {
+                    console.log('Status update failed:', e);
+                });
+        }
+
+        // Update immediately and then every 1 second
+        updateStatus();
+        setInterval(updateStatus, 1000);
+    </script>
+</body>
+</html>"""
+
+        with open(output_path, 'w') as f:
+            f.write(html)
 
 
 def main():
-    """Start the live-updating viewer server."""
+    """Start the status viewer server."""
     # Paths relative to viewer directory
     csv_path = '../src/data/simulated_calls.csv'
     report_dir = '../src/reports/html'
     port = 8000
 
-    # Check if CSV exists
-    if not os.path.exists(csv_path):
-        print("=" * 80)
-        print("No data file found!")
-        print("=" * 80)
-        print()
-        print("Please generate data first:")
-        print("  1. cd ../src")
-        print("  2. python3 run_all_simulators.py")
-        print()
-        print("Then start this viewer again.")
-        print("=" * 80)
-        sys.exit(1)
-
-    # Ensure report directory exists
-    os.makedirs(report_dir, exist_ok=True)
+    # CSV doesn't need to exist yet - viewer will show 0% progress
+    # This allows starting viewer before running simulator
 
     # Create server instance
-    server = ContinuousReportServer(csv_path, report_dir, port)
+    server = StatusViewerServer(csv_path, report_dir, port)
 
-    # Clear browser cache (via no-cache headers)
-    server.clear_browser_cache()
-
-    # Start server (will serve existing reports)
+    # Start server
     server.serve()
 
 

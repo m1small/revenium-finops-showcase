@@ -361,8 +361,8 @@ def generate_manifest(calls):
         'generated_at': datetime.now().isoformat(),
         'call_count': len(calls),
         'data_size_mb': round(file_size_mb, 2),
-        'target_size_mb': 50,
-        'progress_pct': min((file_size_mb / 50) * 100, 100)
+        'target_size_mb': 2048,
+        'progress_pct': min((file_size_mb / 2048) * 100, 100)
     }
 
     os.makedirs('reports/html', exist_ok=True)
