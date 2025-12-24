@@ -21,7 +21,7 @@ from analyzers.ubr.pricing import PricingStrategyAnalyzer
 from analyzers.ubr.features import FeatureEconomicsAnalyzer
 
 from analyzers.common import load_calls_from_csv, format_currency, format_large_number
-from utils.html_generator import (
+from generators import (
     generate_understanding_report, generate_performance_report,
     generate_realtime_report, generate_optimization_report,
     generate_alignment_report, generate_profitability_report,
