@@ -40,6 +40,26 @@ class ContinuousReportServer:
             return 0.0
         return os.path.getsize(self.csv_path) / (1024 * 1024)
 
+    def clear_cached_reports(self):
+        """Clear all cached HTML reports from the report directory."""
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Clearing cached HTML reports...")
+
+        if not os.path.exists(self.report_dir):
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Report directory does not exist yet")
+            return
+
+        cleared_count = 0
+        for filename in os.listdir(self.report_dir):
+            if filename.endswith('.html') or filename.endswith('.json'):
+                file_path = os.path.join(self.report_dir, filename)
+                try:
+                    os.remove(file_path)
+                    cleared_count += 1
+                except Exception as e:
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] Error removing {filename}: {e}")
+
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Cleared {cleared_count} cached file(s)")
+
     def run_analyzers(self):
         """Run all analyzers to regenerate reports."""
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Running analyzers...")
@@ -173,17 +193,21 @@ def main():
     # Ensure report directory exists
     os.makedirs(report_dir, exist_ok=True)
 
-    # Run initial analysis if no reports exist
-    if not os.path.exists(os.path.join(report_dir, 'index.html')):
-        print("Generating initial reports...")
-        subprocess.run(
-            [sys.executable, 'run_all_analyzers.py'],
-            cwd='../src'
-        )
-        print()
-
-    # Create and start server
+    # Create server instance
     server = ContinuousReportServer(csv_path, report_dir, port)
+
+    # Clear any cached HTML reports
+    server.clear_cached_reports()
+
+    # Run initial analysis
+    print("Generating initial reports...")
+    subprocess.run(
+        [sys.executable, 'run_all_analyzers.py'],
+        cwd='../src'
+    )
+    print()
+
+    # Start server
     server.serve()
 
 
