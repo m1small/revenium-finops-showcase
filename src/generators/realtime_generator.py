@@ -2,6 +2,7 @@
 
 import os
 from typing import Dict, Any
+from datetime import datetime
 from .shared import format_currency, format_number, build_html_template, build_recommendations_html
 
 
