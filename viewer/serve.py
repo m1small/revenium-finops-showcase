@@ -13,7 +13,10 @@ import json
 import time
 import os
 import sys
+import threading
+import subprocess
 from datetime import datetime
+from urllib.parse import parse_qs, urlparse
 
 
 class StatusViewerServer:
@@ -31,6 +34,8 @@ class StatusViewerServer:
         self.report_dir = report_dir
         self.port = port
         self.target_size_mb = 2048.0  # 2GB target
+        self.analyzer_status = {}  # Track status of running analyzers
+        self.status_lock = threading.Lock()  # Thread-safe status updates
 
     def get_csv_size_mb(self) -> float:
         """Get current size of CSV file in MB."""
@@ -76,6 +81,9 @@ class StatusViewerServer:
         csv_size_mb = self.get_csv_size_mb()
         line_count = self.get_csv_line_count()
 
+        with self.status_lock:
+            analyzer_status_copy = self.analyzer_status.copy()
+
         return {
             'timestamp': datetime.now().isoformat(),
             'csv': {
@@ -85,8 +93,72 @@ class StatusViewerServer:
                 'line_count': line_count,
                 'complete': csv_size_mb >= self.target_size_mb
             },
-            'reports': self.check_report_status()
+            'reports': self.check_report_status(),
+            'analyzer_status': analyzer_status_copy
         }
+
+    def run_analyzer_async(self, analyzer_id: str):
+        """Run an analyzer in a background thread.
+
+        Args:
+            analyzer_id: ID of the analyzer to run (e.g., 'understanding')
+        """
+        def run():
+            # Update status to reprocessing
+            with self.status_lock:
+                self.analyzer_status[analyzer_id] = {
+                    'status': 'reprocessing',
+                    'started_at': datetime.now().isoformat()
+                }
+
+            try:
+                # Get the path to run_analyzer.py (one level up from viewer/)
+                src_dir = os.path.join(os.path.dirname(__file__), '..', 'src')
+                run_analyzer_path = os.path.join(src_dir, 'run_analyzer.py')
+
+                # Run the analyzer script
+                result = subprocess.run(
+                    [sys.executable, run_analyzer_path, analyzer_id],
+                    cwd=src_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=300  # 5 minute timeout
+                )
+
+                if result.returncode == 0:
+                    # Success
+                    with self.status_lock:
+                        self.analyzer_status[analyzer_id] = {
+                            'status': 'complete',
+                            'completed_at': datetime.now().isoformat()
+                        }
+                else:
+                    # Error
+                    with self.status_lock:
+                        self.analyzer_status[analyzer_id] = {
+                            'status': 'error',
+                            'error': result.stderr,
+                            'failed_at': datetime.now().isoformat()
+                        }
+
+            except subprocess.TimeoutExpired:
+                with self.status_lock:
+                    self.analyzer_status[analyzer_id] = {
+                        'status': 'error',
+                        'error': 'Analyzer timed out after 5 minutes',
+                        'failed_at': datetime.now().isoformat()
+                    }
+            except Exception as e:
+                with self.status_lock:
+                    self.analyzer_status[analyzer_id] = {
+                        'status': 'error',
+                        'error': str(e),
+                        'failed_at': datetime.now().isoformat()
+                    }
+
+        # Start analyzer in background thread
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
 
     def serve(self):
         """Start the HTTP server."""
@@ -113,6 +185,42 @@ class StatusViewerServer:
 
                 # Add no-cache headers for HTML files
                 super().do_GET()
+
+            def do_POST(self):
+                # Run analyzer endpoint
+                if self.path.startswith('/api/run_analyzer'):
+                    # Parse analyzer_id from query string
+                    parsed = urlparse(self.path)
+                    params = parse_qs(parsed.query)
+                    analyzer_id = params.get('analyzer_id', [None])[0]
+
+                    if not analyzer_id:
+                        self.send_response(400)
+                        self.send_header('Content-Type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            'success': False,
+                            'error': 'Missing analyzer_id parameter'
+                        }).encode())
+                        return
+
+                    # Start analyzer in background
+                    parent.run_analyzer_async(analyzer_id)
+
+                    # Return immediate response
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        'success': True,
+                        'analyzer_id': analyzer_id,
+                        'message': 'Analyzer started'
+                    }).encode())
+                    return
+
+                # Method not allowed for other paths
+                self.send_response(405)
+                self.end_headers()
 
             def end_headers(self):
                 # No-cache headers for all responses
@@ -307,6 +415,14 @@ class StatusViewerServer:
         .status-badge.pending {
             background: #ff9800;
         }
+        .status-badge.reprocessing {
+            background: #2196f3;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
         .report-card h3 {
             margin-bottom: 10px;
             color: #1a1a1a;
@@ -317,14 +433,37 @@ class StatusViewerServer:
             font-size: 14px;
             margin-bottom: 15px;
         }
-        .view-button {
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .run-button, .view-button {
             display: inline-block;
-            background: #2196f3;
             color: white;
             padding: 10px 20px;
             text-decoration: none;
             border-radius: 4px;
             transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .run-button {
+            background: #9C27B0;
+            flex: 0 0 auto;
+        }
+        .run-button:hover {
+            background: #7B1FA2;
+        }
+        .run-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .view-button {
+            background: #2196f3;
+            flex: 1;
         }
         .view-button:hover {
             background: #1976d2;
@@ -419,6 +558,18 @@ class StatusViewerServer:
     </div>
 
     <script>
+        // Map filenames to analyzer IDs
+        const ANALYZER_IDS = {
+            'understanding.html': 'understanding',
+            'performance.html': 'performance',
+            'realtime.html': 'realtime',
+            'optimization.html': 'optimization',
+            'alignment.html': 'alignment',
+            'profitability.html': 'profitability',
+            'pricing.html': 'pricing',
+            'features.html': 'features'
+        };
+
         function formatSize(mb) {
             if (mb < 1) {
                 return (mb * 1024).toFixed(1) + ' KB';
@@ -430,6 +581,33 @@ class StatusViewerServer:
 
         function formatNumber(num) {
             return num.toLocaleString();
+        }
+
+        function runAnalyzer(analyzerId, button) {
+            // Disable the button
+            button.disabled = true;
+            button.textContent = 'Running...';
+
+            // Send POST request to run analyzer
+            fetch('/api/run_analyzer?analyzer_id=' + analyzerId, {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Analyzer started:', analyzerId);
+                } else {
+                    alert('Failed to start analyzer: ' + data.error);
+                    button.disabled = false;
+                    button.textContent = '⟳ Run';
+                }
+            })
+            .catch(e => {
+                console.error('Error starting analyzer:', e);
+                alert('Failed to start analyzer');
+                button.disabled = false;
+                button.textContent = '⟳ Run';
+            });
         }
 
         function updateStatus() {
@@ -450,23 +628,39 @@ class StatusViewerServer:
                     const reportGrid = document.getElementById('report-grid');
                     reportGrid.innerHTML = '';
 
+                    const analyzerStatus = data.analyzer_status || {};
+
                     for (const [filename, info] of Object.entries(data.reports)) {
+                        const analyzerId = ANALYZER_IDS[filename];
+                        const status = analyzerStatus[analyzerId];
+                        const isReprocessing = status && status.status === 'reprocessing';
+
                         const card = document.createElement('div');
                         card.className = 'report-card ' + (info.exists ? 'available' : 'unavailable');
 
-                        const statusBadge = info.exists ?
-                            '<div class="status-badge complete">✓ Complete</div>' :
-                            '<div class="status-badge pending">⋯ Pending</div>';
+                        let statusBadge;
+                        if (isReprocessing) {
+                            statusBadge = '<div class="status-badge reprocessing">⟳ Reprocessing</div>';
+                        } else if (info.exists) {
+                            statusBadge = '<div class="status-badge complete">✓ Complete</div>';
+                        } else {
+                            statusBadge = '<div class="status-badge pending">⋯ Pending</div>';
+                        }
 
                         const viewButton = info.exists ?
                             `<a href="${filename}" class="view-button">View Report →</a>` :
                             '<span class="view-button disabled">Not Generated</span>';
 
+                        const runButton = `<button class="run-button" onclick="runAnalyzer('${analyzerId}', this)" ${isReprocessing ? 'disabled' : ''}>⟳ Run</button>`;
+
                         card.innerHTML = `
                             ${statusBadge}
                             <h3>${info.name}</h3>
                             <p>${info.exists ? 'Report available (' + info.size_kb.toFixed(1) + ' KB)' : 'Run analyzers to generate'}</p>
-                            ${viewButton}
+                            <div class="button-group">
+                                ${runButton}
+                                ${viewButton}
+                            </div>
                         `;
 
                         reportGrid.appendChild(card);
