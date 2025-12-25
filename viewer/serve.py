@@ -169,15 +169,19 @@ class StatusViewerServer:
             def do_GET(self):
                 # Status API endpoint
                 if self.path.startswith('/api/status'):
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json')
-                    self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-                    self.send_header('Pragma', 'no-cache')
-                    self.send_header('Expires', '0')
-                    self.end_headers()
+                    try:
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                        self.send_header('Pragma', 'no-cache')
+                        self.send_header('Expires', '0')
+                        self.end_headers()
 
-                    status = parent.get_status_json()
-                    self.wfile.write(json.dumps(status, indent=2).encode())
+                        status = parent.get_status_json()
+                        self.wfile.write(json.dumps(status, indent=2).encode())
+                    except (BrokenPipeError, ConnectionResetError):
+                        # Client closed connection - ignore
+                        pass
                     return
 
                 # Serve files from report directory
@@ -189,33 +193,37 @@ class StatusViewerServer:
             def do_POST(self):
                 # Run analyzer endpoint
                 if self.path.startswith('/api/run_analyzer'):
-                    # Parse analyzer_id from query string
-                    parsed = urlparse(self.path)
-                    params = parse_qs(parsed.query)
-                    analyzer_id = params.get('analyzer_id', [None])[0]
+                    try:
+                        # Parse analyzer_id from query string
+                        parsed = urlparse(self.path)
+                        params = parse_qs(parsed.query)
+                        analyzer_id = params.get('analyzer_id', [None])[0]
 
-                    if not analyzer_id:
-                        self.send_response(400)
+                        if not analyzer_id:
+                            self.send_response(400)
+                            self.send_header('Content-Type', 'application/json')
+                            self.end_headers()
+                            self.wfile.write(json.dumps({
+                                'success': False,
+                                'error': 'Missing analyzer_id parameter'
+                            }).encode())
+                            return
+
+                        # Start analyzer in background
+                        parent.run_analyzer_async(analyzer_id)
+
+                        # Return immediate response
+                        self.send_response(200)
                         self.send_header('Content-Type', 'application/json')
                         self.end_headers()
                         self.wfile.write(json.dumps({
-                            'success': False,
-                            'error': 'Missing analyzer_id parameter'
+                            'success': True,
+                            'analyzer_id': analyzer_id,
+                            'message': 'Analyzer started'
                         }).encode())
-                        return
-
-                    # Start analyzer in background
-                    parent.run_analyzer_async(analyzer_id)
-
-                    # Return immediate response
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({
-                        'success': True,
-                        'analyzer_id': analyzer_id,
-                        'message': 'Analyzer started'
-                    }).encode())
+                    except (BrokenPipeError, ConnectionResetError):
+                        # Client closed connection - ignore
+                        pass
                     return
 
                 # Method not allowed for other paths
