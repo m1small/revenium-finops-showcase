@@ -18,22 +18,26 @@ import subprocess
 from datetime import datetime
 from urllib.parse import parse_qs, urlparse
 
+# Add src to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+from config import TARGET_SIZE_MB, DATA_CSV_PATH, REPORT_DIR, VIEWER_PORT
+
 
 class StatusViewerServer:
     """Server that displays live status of data generation and report availability."""
 
-    def __init__(self, csv_path: str, report_dir: str, port: int = 8000):
+    def __init__(self, csv_path: str = None, report_dir: str = None, port: int = None):
         """Initialize the status viewer server.
 
         Args:
-            csv_path: Path to the CSV file to monitor
-            report_dir: Directory containing HTML reports
-            port: HTTP server port
+            csv_path: Path to the CSV file to monitor (defaults to config.DATA_CSV_PATH)
+            report_dir: Directory containing HTML reports (defaults to config.REPORT_DIR)
+            port: HTTP server port (defaults to config.VIEWER_PORT)
         """
-        self.csv_path = csv_path
-        self.report_dir = report_dir
-        self.port = port
-        self.target_size_mb = 2048.0  # 2GB target
+        self.csv_path = csv_path or DATA_CSV_PATH
+        self.report_dir = report_dir or REPORT_DIR
+        self.port = port or VIEWER_PORT
+        self.target_size_mb = TARGET_SIZE_MB  # From config (50 MB)
         self.analyzer_status = {}  # Track status of running analyzers
         self.status_lock = threading.Lock()  # Thread-safe status updates
 

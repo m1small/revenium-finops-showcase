@@ -93,3 +93,115 @@ def build_recommendations_html(recommendations: list) -> str:
     for i, rec in enumerate(recommendations, 1):
         rec_html += f'<div class="recommendation">{i}. {rec}</div>\n'
     return rec_html
+
+
+def build_metric_card(label: str, value: str, gradient_index: int = 0) -> str:
+    """Build a single metric card HTML."""
+    gradients = [
+        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+        "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+        "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+        "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+        "linear-gradient(135deg, #30cfd0 0%, #330867 100%)",
+    ]
+    gradient = gradients[gradient_index % len(gradients)]
+
+    return f"""
+        <div class="metric-card" style="background: {gradient};">
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+        </div>
+    """
+
+
+def build_metric_grid(metrics: list) -> str:
+    """Build a grid of metric cards.
+
+    Args:
+        metrics: List of dicts with 'label' and 'value' keys
+
+    Returns:
+        HTML string for metric grid
+    """
+    cards = ""
+    for i, metric in enumerate(metrics):
+        cards += build_metric_card(metric['label'], metric['value'], i)
+
+    return f"""
+        <div class="metric-grid">
+            {cards}
+        </div>
+    """
+
+
+def build_alert(level: str, title: str, description: str) -> str:
+    """Build an alert box.
+
+    Args:
+        level: One of 'critical', 'warning', 'info', 'success'
+        title: Alert title
+        description: Alert description
+
+    Returns:
+        HTML string for alert
+    """
+    icons = {
+        'critical': '🚨',
+        'warning': '⚠️',
+        'info': 'ℹ️',
+        'success': '✓'
+    }
+    icon = icons.get(level, '•')
+
+    return f"""
+        <div class="alert alert-{level}">
+            <div class="alert-icon">{icon}</div>
+            <div class="alert-content">
+                <div class="alert-title">{title}</div>
+                <div class="alert-description">{description}</div>
+            </div>
+        </div>
+    """
+
+
+def build_table(headers: list, rows: list, row_formatter=None) -> str:
+    """Build an HTML table.
+
+    Args:
+        headers: List of header strings
+        rows: List of row data (each row is a list or dict)
+        row_formatter: Optional function to format each row's data
+
+    Returns:
+        HTML string for table
+    """
+    # Build header
+    header_html = "<tr>\n"
+    for header in headers:
+        header_html += f"    <th>{header}</th>\n"
+    header_html += "</tr>"
+
+    # Build rows
+    rows_html = ""
+    for row in rows:
+        if row_formatter:
+            row_data = row_formatter(row)
+        else:
+            row_data = row if isinstance(row, list) else list(row.values())
+
+        rows_html += "<tr>\n"
+        for cell in row_data:
+            rows_html += f"    <td>{cell}</td>\n"
+        rows_html += "</tr>\n"
+
+    return f"""
+        <table>
+            <thead>
+                {header_html}
+            </thead>
+            <tbody>
+                {rows_html}
+            </tbody>
+        </table>
+    """

@@ -1,448 +1,123 @@
-# Revenium FinOps Showcase - Specification Guide
+# Technical Specifications
 
 ## Overview
 
-This folder contains detailed, human-readable specifications that serve as the authoritative reference for the Revenium FinOps Showcase. These specifications are designed to be read by both humans and AI agents building or extending the system.
+This directory contains the complete technical specifications for the Revenium FinOps Showcase system. These specifications are language-agnostic and structured to enable faithful reproduction in any programming language.
 
-## Recent Enhancements
+## Specification Documents
 
-The specifications have been enhanced to showcase additional Revenium platform capabilities:
+### 00-overview.md
+System summary, implementation guidelines, and specification organization. Start here for a high-level understanding.
 
-1. **Real-Time Alerting** (`analyzers.md` - Real-Time Decision Making):
-   - Budget threshold alerts with configurable notification channels (Email, Slack)
-   - Portfolio risk assessment with trending indicators
-   - Proactive cost management preventing overruns before they happen
-   - Cumulative usage tracking with bulk anomaly queries
+### 01-system-architecture.md
+System design, component layers, data flow, and architectural principles. Covers the overall structure and interaction patterns.
 
-2. **Multi-Dimensional Analysis & Chart Builder** (`integration.md`):
-   - Save and reuse chart configurations across teams
-   - Multi-dimensional grouping (organization → product → model → customer)
-   - Cross-functional analysis combining cost, performance, and usage metrics
-   - Team collaboration with workspace-level custom display names
+### 02-data-model.md
+CSV schema (19 fields), configuration model, data structures, and constraints. Complete data model specification.
 
-3. **OpenTelemetry Integration** (`integration.md`):
-   - Accept OTEL AI metrics in JSON format
-   - Trace-level analytics for detailed observability
-   - Correlate AI costs with distributed traces
-   - Unified observability + FinOps platform (5-minute setup)
+### 03-simulation-engine.md
+Traffic generation algorithms, 12 scenario simulators, and batch writing. Details all data generation logic.
 
-These enhancements position the showcase to demonstrate Revenium as more than just a billing tool—it's a comprehensive platform for real-time cost management, collaborative analysis, and unified observability.
+### 04-analysis-algorithms.md
+FinOps domain analyzers (5), UBR analyzers (3), and common utilities. Core business logic and calculations.
 
-## Specification Files
+### 05-advanced-analytics.md
+Dataset overview, token economics, geographic latency, churn/growth, and abuse detection algorithms.
 
-### 📐 [architecture.md](architecture.md)
-**System Architecture & Design**
+### 06-report-generation.md
+HTML template system, Chart.js integration, shared UI components, and formatting utilities.
 
-Comprehensive overview of the system architecture, component interactions, and design principles.
+### 07-web-interface.md
+HTTP server, status API, background monitoring, analyzer execution API, and client-side polling.
 
-**What You'll Find**:
-- Layered architecture diagram (UI → Server → Report Generation → Analysis → Data → Simulation)
-- Component descriptions and responsibilities
-- Data flow diagrams
-- Technology stack details
-- Integration points
-- Scalability considerations
-- Design trade-offs and rationale
-
-**Read This When**:
-- Starting to work on the project
-- Understanding how components interact
-- Planning architectural changes
-- Evaluating technology decisions
-- Adding new components
-
----
-
-### 📊 [data-schema.md](data-schema.md)
-**Data Schema & Metadata Structure**
-
-Complete specification of the 19-field CSV schema used throughout the system.
-
-**What You'll Find**:
-- Field-by-field definitions with types and examples
-- Metadata hierarchy (Organization → Product → Feature → Customer)
-- Data validation rules
-- Customer archetype patterns
-- Analysis dimensions supported
-- CSV format specifications
-- Schema evolution guidelines
-
-**Read This When**:
-- Understanding the data model
-- Writing analyzers or queries
-- Extending the schema
-- Validating data quality
-- Troubleshooting data issues
-
----
-
-### 🎲 [simulators.md](simulators.md)
-**Traffic Simulation Patterns**
-
-Detailed specification of all traffic simulators and their configurations.
-
-**What You'll Find**:
-- Base simulator architecture
-- Provider and model configurations
-- Customer archetype definitions (light, power, heavy users)
-- 5 scenario simulators (seasonal, burst, decline, steady growth, viral spike)
-- Token generation patterns
-- Cost calculation formulas
-- Temporal patterns (business hours, weekends)
-- Customization guide
-- Performance characteristics
-
-**Read This When**:
-- Generating simulated data
-- Creating custom traffic patterns
-- Understanding simulation logic
-- Adjusting pricing or usage parameters
-- Troubleshooting data generation
-
----
-
-### 🔍 [analyzers.md](analyzers.md)
-**Analysis Engine Specification**
-
-Complete specification of all 8 analyzers (5 FinOps + 3 UBR).
-
-**What You'll Find**:
-- Common analyzer pattern and interface
-- **5 FinOps Analyzers**:
-  1. Understanding Usage & Cost (allocation, forecasting, efficiency)
-  2. Performance Tracking (latency, efficiency, SLAs)
-  3. Real-Time Decision Making (anomalies, threshold violations, **proactive alerting**)
-  4. Rate Optimization (reserved capacity, model switching)
-  5. Organizational Alignment (multi-tenant, chargeback/showback)
-- **3 UBR Analyzers**:
-  1. Customer Profitability (margins, unprofitable customers)
-  2. Pricing Strategy (4 pricing model comparisons)
-  3. Feature Economics (ROI, investment decisions)
-- Key metrics and recommendations for each
-- **NEW: Real-time alerting capabilities** (budget thresholds, Slack/email notifications, portfolio risk assessment)
-- Common utilities and patterns
-- Performance optimization techniques
-
-**Read This When**:
-- Understanding analyzer logic
-- Adding new analyzers
-- Modifying existing analysis
-- Troubleshooting analysis results
-- Optimizing performance
-- **Configuring real-time alerts and notifications**
-
----
-
-### 🎨 [reports.md](reports.md)
-**Report Generation & UI Design**
-
-Specification for HTML report generation, design system, and Chart.js integration.
-
-**What You'll Find**:
-- Design system (colors, typography, spacing, animations)
-- Chart.js integration details
-- Report components (metric cards, tables, charts, alerts)
-- Standard report structure
-- Responsive design breakpoints
-- Print styles
-- Accessibility guidelines (WCAG compliance)
-- Performance optimization
-- Browser compatibility
-
-**Read This When**:
-- Generating HTML reports
-- Creating new visualizations
-- Modifying design elements
-- Adding new chart types
-- Ensuring accessibility
-- Troubleshooting UI issues
-
----
-
-### 🔌 [integration.md](integration.md)
-**Revenium SDK Integration Patterns**
-
-Reference implementations and best practices for integrating Revenium.
-
-**What You'll Find**:
-- Basic instrumentation examples
-- **NEW: OpenTelemetry integration pattern** (OTEL AI metrics, trace-level analytics, unified observability)
-- Metadata builder fluent API
-- Hierarchical tagging strategies
-- Integration with OpenAI, Anthropic APIs
-- **NEW: Multi-dimensional grouping & Chart Builder** (save/reuse chart configs, team collaboration)
-- Query pattern examples
-- Business scenario walkthroughs
-- Error handling patterns (retry, circuit breaker)
-- Best practices
-
-**Read This When**:
-- Integrating Revenium into applications
-- Building metadata strategies
-- Learning SDK usage patterns
-- Implementing error handling
-- Solving business scenarios
-- **Setting up OpenTelemetry integration**
-- **Building reusable multi-dimensional analysis views**
-
----
-
-### ⚙️ [workflows.md](workflows.md)
-**User Workflows & Operations**
-
-Step-by-step workflows for all common operations.
-
-**What You'll Find**:
-- **Quick Start**: 3-step workflow (simulate → analyze → view)
-- Alternative workflows (single pattern, individual analyzer, custom params)
-- Integration workflows
-- Operational workflows (daily reports, monitoring, distribution)
-- Troubleshooting workflows
-- Advanced workflows (A/B testing, batch processing, CI/CD)
-- Deployment workflows
-- Performance optimization workflows
-
-**Read This When**:
-- Getting started with the system
-- Running specific workflows
-- Troubleshooting issues
-- Setting up automation
-- Deploying to production
-- Optimizing performance
-
----
-
-### ⚙️ [requirements.md](requirements.md)
-**Technical Requirements & Constraints**
-
-Complete specification of technical requirements and constraints.
-
-**What You'll Find**:
-- System requirements (Python, OS, hardware)
-- Dependencies (stdlib only, Chart.js CDN)
-- Browser requirements
-- Network requirements
-- Performance requirements and limits
-- Scalability limits and strategies
-- Security requirements and recommendations
-- Data quality requirements
-- Compatibility matrix
-- Development requirements
-- Testing requirements
-- Deployment requirements
-- Monitoring requirements
-
-**Read This When**:
-- Setting up development environment
-- Planning deployment
-- Evaluating system constraints
-- Scaling the system
-- Implementing security
-- Troubleshooting compatibility issues
-
----
-
-## Quick Reference
-
-### By Role
-
-**Developer (New to Project)**:
-1. Start with `architecture.md` - Understand the big picture
-2. Read `workflows.md` - Get up and running quickly
-3. Review `data-schema.md` - Understand the data model
-4. Explore `simulators.md` and `analyzers.md` as needed
-
-**Data Analyst**:
-1. Read `data-schema.md` - Understand data structure
-2. Review `analyzers.md` - Learn analysis capabilities
-3. Check `integration.md` - Query patterns and examples
-
-**Designer/Frontend Developer**:
-1. Start with `reports.md` - Design system and components
-2. Review `architecture.md` - Understand UI layer
-3. Check `requirements.md` - Browser compatibility
-
-**DevOps/SRE**:
-1. Read `requirements.md` - System requirements
-2. Review `workflows.md` - Deployment workflows
-3. Check `architecture.md` - Deployment architecture
-
-**Product Manager**:
-1. Start with `architecture.md` - System overview
-2. Review `analyzers.md` - Feature capabilities
-3. Check `workflows.md` - User workflows
-
-### By Task
-
-| Task | Primary Spec | Supporting Specs |
-|------|--------------|------------------|
-| Add new analyzer | `analyzers.md` | `data-schema.md`, `reports.md` |
-| Create traffic pattern | `simulators.md` | `data-schema.md` |
-| Modify report design | `reports.md` | `architecture.md` |
-| Add metadata field | `data-schema.md` | `simulators.md`, `analyzers.md` |
-| Deploy to production | `workflows.md` | `requirements.md`, `architecture.md` |
-| Troubleshoot issues | `workflows.md` | Relevant component spec |
-| Integrate Revenium SDK | `integration.md` | `data-schema.md` |
-| **Set up real-time alerts** | `analyzers.md` (Real-Time) | `integration.md` |
-| **Configure OTEL integration** | `integration.md` (OpenTelemetry) | `data-schema.md` |
-| **Build multi-dimensional charts** | `integration.md` (Chart Builder) | `analyzers.md` |
-| Optimize performance | `requirements.md` | `workflows.md`, component specs |
-
-### By Component
-
-| Component | Specification |
-|-----------|---------------|
-| Simulators | `simulators.md` |
-| Analyzers | `analyzers.md` |
-| HTML Generator | `reports.md` |
-| Web Viewer | `architecture.md`, `reports.md` |
-| Showcase Examples | `integration.md` |
-| CSV Data | `data-schema.md` |
+### 08-integration-contracts.md
+Interface contracts, data contracts, error handling, and version control. Defines all component interactions.
 
 ## Specification Principles
 
-### 1. Human-Readable
-All specifications are written in clear, accessible language with examples.
+### 1. Human Readable
+- Natural language algorithms
+- Minimal repetition
+- Clear, concise descriptions
+- Structured format
 
-### 2. AI-Agent Friendly
-Structured to be easily parsed and understood by AI agents for code generation.
+### 2. Modular
+- Each document focused on specific domain
+- Cross-references where needed
+- Independent comprehension possible
+- Layered detail
 
-### 3. Non-Duplicative
-Each specification covers a distinct area with minimal overlap. Cross-references link related topics.
+### 3. Language Agnostic
+- Pseudocode for algorithms
+- Mathematical notation for formulas
+- No language-specific idioms
+- Technology-neutral where possible
 
-### 4. Example-Driven
-Concepts are illustrated with code examples, diagrams, and use cases.
+### 4. Faithful Reproduction
+- Complete algorithm specifications
+- All thresholds and constants defined
+- Edge cases documented
+- Performance targets specified
 
-### 5. Comprehensive
-Covers both high-level architecture and implementation details.
+## Using These Specifications
 
-### 6. Living Documents
-Specifications evolve with the codebase and should be updated when code changes.
+### For Implementation
 
-## Specification Status
+1. Read 00-overview.md for context
+2. Review 01-system-architecture.md for structure
+3. Implement components following relevant specs
+4. Verify against integration contracts (08)
+5. Test using criteria in each specification
 
-| Specification | Status | Last Updated |
-|---------------|--------|--------------|
-| architecture.md | ✅ Complete | 2025-12-19 |
-| data-schema.md | ✅ Complete | 2025-12-19 |
-| simulators.md | ✅ Complete | 2025-12-19 |
-| analyzers.md | ✅ Complete | 2025-12-19 |
-| reports.md | ✅ Complete | 2025-12-19 |
-| integration.md | ✅ Complete | 2025-12-19 |
-| workflows.md | ✅ Complete | 2025-12-19 |
-| requirements.md | ✅ Complete | 2025-12-19 |
+### For Maintenance
 
-## Contributing to Specifications
+1. Specifications reflect current implementation
+2. Update specs when making architectural changes
+3. Keep algorithms synchronized with code
+4. Review specs during design discussions
 
-### When to Update Specs
+### For Extension
 
-Update specifications when:
-- Adding new features
-- Modifying existing behavior
-- Changing data schema
-- Adding new components
-- Updating dependencies
-- Changing workflows
+Each specification includes extension points:
+- Adding new analyzers
+- Adding new scenarios
+- Adding new providers
+- Adding new metrics
 
-### How to Update Specs
+## Specification Format
 
-1. **Identify Affected Specs**: Determine which specs need updates
-2. **Update Content**: Make changes with examples and rationale
-3. **Cross-Reference**: Update links to/from other specs
-4. **Review**: Ensure clarity and completeness
-5. **Commit with Code**: Update specs in same commit as code changes
+### Algorithm Notation
+- `function name(parameters):` - Function definitions
+- `if/elif/else` - Conditionals
+- `for/while` - Loops
+- `return` - Function returns
+- Mathematical notation for formulas
 
-### Spec Writing Guidelines
+### Type System
+- `String`, `Integer`, `Float`, `Boolean` - Primitives
+- `List[Type]` - Lists/arrays
+- `Dictionary` - Key-value maps
+- `Tuple` - Fixed-size sequences
 
-**Do**:
-- Use clear, concise language
-- Provide code examples
-- Include diagrams where helpful
-- Link to related specs
-- Explain rationale for decisions
+### Code Examples
+Examples show expected behavior, inputs, outputs, and edge cases.
 
-**Don't**:
-- Duplicate information across specs
-- Write implementation code (use examples instead)
-- Assume prior knowledge (link to basics)
-- Use jargon without explanation
+## Archive Folder
 
-## Legacy Documents
+The `archive/` folder contains outdated specifications from initial development. **Do not use these.** They are preserved for historical reference only.
 
-### product-spec.md (Deprecated)
+## Questions or Clarifications
 
-The original monolithic specification has been replaced by the modular specifications above. It is kept for historical reference but should not be used for new development.
+For implementation questions:
+1. Check relevant specification document
+2. Review integration contracts (08)
+3. Refer to source code as reference implementation
+4. Consult main project README for context
 
-**Migration Status**: Complete - all content migrated to modular specs
+## Maintenance
 
-## Additional Resources
-
-### Project Documentation
-
-- [`../README.md`](../README.md) - Project overview
-- [`../QUICKSTART.md`](../QUICKSTART.md) - 3-step quick start guide
-- [`../TRAFFIC_SIMULATORS_GUIDE.md`](../TRAFFIC_SIMULATORS_GUIDE.md) - Traffic simulator details
-- [`../src/README.md`](../src/README.md) - Implementation details
-- [`../plan/DESIGN_ENHANCEMENTS.md`](../plan/DESIGN_ENHANCEMENTS.md) - Modern UI enhancements
-
-### Code Documentation
-
-All code includes comprehensive docstrings and type hints. Use Python's built-in help:
-
-```python
-from simulator.core import AICallSimulator
-help(AICallSimulator)
-
-from analyzers.finops.understanding import UnderstandingAnalyzer
-help(UnderstandingAnalyzer)
-```
-
-## Questions?
-
-If you can't find what you're looking for:
-
-1. **Check the Table of Contents** above - specs are organized by topic
-2. **Use Search** - search across all spec files for keywords
-3. **Review Cross-References** - specs link to related topics
-4. **Check Code Examples** - inline examples demonstrate concepts
-5. **Consult Architecture** - `architecture.md` has system-wide overview
-
----
-
-## Specification Navigation Flow
-
-```
-Start Here
-    ↓
-┌─────────────────────┐
-│  architecture.md    │ ← System overview
-└─────────────────────┘
-    ↓
-┌─────────────────────┐
-│  workflows.md       │ ← How to use it
-└─────────────────────┘
-    ↓
-┌─────────────────────┐
-│  data-schema.md     │ ← What data looks like
-└─────────────────────┘
-    ↓
-┌─────────────────────────────────────────┐
-│  Component-Specific Specs               │
-│  ├── simulators.md    (data generation) │
-│  ├── analyzers.md     (analysis)        │
-│  ├── reports.md       (visualization)   │
-│  └── integration.md   (SDK usage)       │
-└─────────────────────────────────────────┘
-    ↓
-┌─────────────────────┐
-│  requirements.md    │ ← Technical details
-└─────────────────────┘
-```
-
----
-
-**Last Updated**: 2025-12-19
-
-**Maintained By**: Revenium FinOps Showcase Team
-
-**Format**: GitHub Flavored Markdown
+These specifications are:
+- Version controlled with source code
+- Updated alongside implementation changes
+- Reviewed during code reviews
+- Validated against running system

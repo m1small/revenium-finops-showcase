@@ -10,6 +10,8 @@ import sys
 import time
 from datetime import datetime
 
+from config import TARGET_SIZE_MB, DATA_CSV_PATH, REPORT_DIR
+
 # Import analyzers
 from analyzers.finops.understanding import UnderstandingAnalyzer
 from analyzers.finops.performance import PerformanceAnalyzer
@@ -138,7 +140,8 @@ def generate_generic_report(title: str, description: str, data: dict, output_pat
 
 def main():
     """Run all analyzers and generate reports."""
-    csv_path = 'data/simulated_calls.csv'
+    csv_path = DATA_CSV_PATH
+    report_dir = REPORT_DIR
 
     if not os.path.exists(csv_path):
         print(f"Error: {csv_path} not found. Run run_all_simulators.py first.")
@@ -254,7 +257,7 @@ def main():
     for i, report in enumerate(reports, 1):
         print(f"[{i}/{len(reports)}] Generating: {report['name']}...")
 
-        output_path = f"reports/html/{report['filename']}"
+        output_path = f"{report_dir}/{report['filename']}"
 
         try:
             # Initialize and run analyzer
@@ -274,25 +277,25 @@ def main():
     # Generate index page
     print()
     print("Generating index page...")
-    generate_index_page(reports)
-    print("  Generated: reports/html/index.html")
+    generate_index_page(reports, report_dir)
+    print(f"  Generated: {report_dir}/index.html")
 
     # Generate manifest for viewer
     print()
     print("Generating manifest...")
-    generate_manifest(calls)
-    print("  Generated: reports/html/manifest.json")
+    generate_manifest(calls, report_dir)
+    print(f"  Generated: {report_dir}/manifest.json")
 
     print()
     print("=" * 80)
     print("ANALYSIS COMPLETE")
     print("=" * 80)
     print(f"Reports generated: {len(reports)}")
-    print("Output directory: reports/html/")
+    print(f"Output directory: {report_dir}/")
     print()
 
 
-def generate_index_page(reports):
+def generate_index_page(reports, report_dir='reports/html'):
     """Generate main index page listing all reports."""
     report_cards = ""
     for report in reports:
@@ -389,29 +392,29 @@ def generate_index_page(reports):
 </body>
 </html>"""
 
-    os.makedirs('reports/html', exist_ok=True)
-    with open('reports/html/index.html', 'w') as f:
+    os.makedirs(report_dir, exist_ok=True)
+    with open(f'{report_dir}/index.html', 'w') as f:
         f.write(html)
 
 
-def generate_manifest(calls):
+def generate_manifest(calls, report_dir='reports/html'):
     """Generate manifest file for viewer."""
     import json
 
     # Get CSV file size
-    csv_path = 'data/simulated_calls.csv'
+    csv_path = DATA_CSV_PATH
     file_size_mb = os.path.getsize(csv_path) / (1024 * 1024) if os.path.exists(csv_path) else 0
 
     manifest = {
         'generated_at': datetime.now().isoformat(),
         'call_count': len(calls),
         'data_size_mb': round(file_size_mb, 2),
-        'target_size_mb': 2048,
-        'progress_pct': min((file_size_mb / 2048) * 100, 100)
+        'target_size_mb': TARGET_SIZE_MB,
+        'progress_pct': min((file_size_mb / TARGET_SIZE_MB) * 100, 100)
     }
 
-    os.makedirs('reports/html', exist_ok=True)
-    with open('reports/html/manifest.json', 'w') as f:
+    os.makedirs(report_dir, exist_ok=True)
+    with open(f'{report_dir}/manifest.json', 'w') as f:
         json.dump(manifest, f, indent=2)
 
 

@@ -1,6 +1,6 @@
 """HTML Report Generators - Modular report generation for FinOps dashboards."""
 
-from .usage_cost_generator import generate_understanding_report
+from .understanding_cost_usage_generator import generate_understanding_report
 from .performance_generator import generate_performance_report
 from .realtime_generator import generate_realtime_report
 from .optimization_generator import generate_optimization_report
