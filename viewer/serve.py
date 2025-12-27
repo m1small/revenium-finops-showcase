@@ -37,24 +37,141 @@ class StatusViewerServer:
         self.analyzer_status = {}  # Track status of running analyzers
         self.status_lock = threading.Lock()  # Thread-safe status updates
 
+        # Performance: Cache line count to avoid re-reading large files
+        self.line_count_cache = None
+        self.line_count_mtime = None
+        self.last_file_position = 0  # For incremental counting
+
+        # Performance: Cache report status
+        self.report_status_cache = None
+        self.report_cache_time = None
+        self.REPORT_CACHE_TTL = 5  # Cache reports for 5 seconds
+
+        # Progress tracking for long-running operations
+        self.simulator_status = {
+            'status': 'idle',  # idle, running, complete, error
+            'message': '',
+            'started_at': None,
+            'completed_at': None
+        }
+        self.all_analyzers_status = {
+            'status': 'idle',  # idle, running, complete, error
+            'current': None,  # Currently running analyzer
+            'completed': 0,
+            'total': 8,
+            'message': '',
+            'started_at': None,
+            'completed_at': None
+        }
+
     def get_csv_size_mb(self) -> float:
         """Get current size of CSV file in MB."""
-        if not os.path.exists(self.csv_path):
+        try:
+            return os.path.getsize(self.csv_path) / (1024 * 1024)
+        except (FileNotFoundError, OSError):
             return 0.0
-        return os.path.getsize(self.csv_path) / (1024 * 1024)
 
-    def get_csv_line_count(self) -> int:
-        """Get number of lines in CSV file (excluding header)."""
-        if not os.path.exists(self.csv_path):
-            return 0
+    def _get_incremental_line_count(self, current_size: int) -> int | None:
+        """Count only new lines added since last check (for growing files).
+
+        Args:
+            current_size: Current file size in bytes
+
+        Returns:
+            Updated line count, or None if incremental counting not possible
+        """
+        # Only works if file has grown (not shrunk or replaced)
+        if current_size < self.last_file_position:
+            return None
+
+        # If file hasn't grown, return cached count
+        if current_size == self.last_file_position:
+            return self.line_count_cache
+
         try:
             with open(self.csv_path, 'r') as f:
-                return sum(1 for _ in f) - 1  # Subtract header
-        except:
+                # Seek to last known position
+                f.seek(self.last_file_position)
+
+                # Count new lines only
+                new_lines = sum(1 for _ in f)
+
+                # Update position
+                self.last_file_position = current_size
+
+                # Return updated count
+                return self.line_count_cache + new_lines
+
+        except Exception:
+            # If incremental fails, return None to trigger full count
+            return None
+
+    def get_csv_line_count(self) -> int:
+        """Get number of lines in CSV file (excluding header).
+
+        Uses intelligent caching to avoid re-reading large files:
+        - Returns cached value if file hasn't been modified (based on mtime)
+        - For actively growing files, uses incremental counting
+        - Falls back to full count only when necessary
+        """
+        if not os.path.exists(self.csv_path):
             return 0
 
+        try:
+            # Get current file modification time and size
+            stat_info = os.stat(self.csv_path)
+            current_mtime = stat_info.st_mtime
+            current_size = stat_info.st_size
+
+            # If file hasn't changed, return cached value
+            if (self.line_count_cache is not None and
+                self.line_count_mtime is not None and
+                self.line_count_mtime == current_mtime):
+                return self.line_count_cache
+
+            # File has changed - need to recalculate
+            # For large files (>100MB), try incremental counting first
+            if current_size > 100 * 1024 * 1024 and self.line_count_cache is not None:
+                # Try incremental counting for growing files
+                try:
+                    new_count = self._get_incremental_line_count(current_size)
+                    if new_count is not None:
+                        self.line_count_cache = new_count
+                        self.line_count_mtime = current_mtime
+                        return new_count
+                except Exception as e:
+                    print(f"[PERF] Incremental count failed, falling back to full count: {e}")
+
+            # Full file count (for small files or when incremental fails)
+            with open(self.csv_path, 'r') as f:
+                count = sum(1 for _ in f) - 1  # Subtract header
+
+            # Update cache
+            self.line_count_cache = count
+            self.line_count_mtime = current_mtime
+            self.last_file_position = current_size  # Track position for next incremental
+
+            return count
+
+        except Exception as e:
+            # On error, return cached value if available
+            print(f"[ERROR] Line count failed: {e}")
+            return self.line_count_cache if self.line_count_cache is not None else 0
+
     def check_report_status(self) -> dict:
-        """Check which reports exist in the report directory."""
+        """Check which reports exist in the report directory.
+
+        Uses caching to avoid repeated filesystem checks (reports don't change frequently).
+        Cache is valid for REPORT_CACHE_TTL seconds.
+        """
+        # Return cached value if still valid
+        current_time = time.time()
+        if (self.report_status_cache is not None and
+            self.report_cache_time is not None and
+            current_time - self.report_cache_time < self.REPORT_CACHE_TTL):
+            return self.report_status_cache
+
+        # Cache expired or doesn't exist - check filesystem
         reports = {
             'understanding.html': 'Understanding Usage & Cost',
             'performance.html': 'Performance Tracking',
@@ -69,20 +186,40 @@ class StatusViewerServer:
         status = {}
         for filename, name in reports.items():
             filepath = os.path.join(self.report_dir, filename)
-            status[filename] = {
-                'name': name,
-                'exists': os.path.exists(filepath),
-                'size_kb': os.path.getsize(filepath) / 1024 if os.path.exists(filepath) else 0
-            }
+            # Use try/except to batch the exists/size check
+            try:
+                size_kb = os.path.getsize(filepath) / 1024
+                status[filename] = {
+                    'name': name,
+                    'exists': True,
+                    'size_kb': size_kb
+                }
+            except FileNotFoundError:
+                status[filename] = {
+                    'name': name,
+                    'exists': False,
+                    'size_kb': 0
+                }
+
+        # Update cache
+        self.report_status_cache = status
+        self.report_cache_time = current_time
+
         return status
 
     def get_status_json(self) -> dict:
-        """Get current status as JSON."""
-        csv_size_mb = self.get_csv_size_mb()
+        """Get current status as JSON.
+
+        Optimized to minimize filesystem calls by batching operations.
+        """
+        # Get CSV stats efficiently (line_count internally uses stat, no need for separate call)
         line_count = self.get_csv_line_count()
+        csv_size_mb = self.get_csv_size_mb()
 
         with self.status_lock:
             analyzer_status_copy = self.analyzer_status.copy()
+            simulator_status_copy = self.simulator_status.copy()
+            all_analyzers_status_copy = self.all_analyzers_status.copy()
 
         return {
             'timestamp': datetime.now().isoformat(),
@@ -94,8 +231,299 @@ class StatusViewerServer:
                 'complete': csv_size_mb >= self.target_size_mb
             },
             'reports': self.check_report_status(),
-            'analyzer_status': analyzer_status_copy
+            'analyzer_status': analyzer_status_copy,
+            'simulator_status': simulator_status_copy,
+            'all_analyzers_status': all_analyzers_status_copy
         }
+
+    def list_csv_files(self) -> dict:
+        """List all CSV files in the src/data directory.
+
+        Returns:
+            dict with list of CSV files and their metadata
+        """
+        try:
+            data_dir = os.path.join(os.path.dirname(__file__), '..', 'src', 'data')
+
+            # Check if data directory exists
+            if not os.path.exists(data_dir):
+                return {
+                    'success': False,
+                    'error': 'Data directory not found',
+                    'files': []
+                }
+
+            # List all CSV files
+            csv_files = []
+            for filename in os.listdir(data_dir):
+                if filename.endswith('.csv'):
+                    filepath = os.path.join(data_dir, filename)
+                    try:
+                        stat_info = os.stat(filepath)
+                        size_mb = stat_info.st_size / (1024 * 1024)
+                        mtime = datetime.fromtimestamp(stat_info.st_mtime)
+
+                        csv_files.append({
+                            'filename': filename,
+                            'size_mb': round(size_mb, 2),
+                            'modified': mtime.isoformat(),
+                            'modified_display': mtime.strftime('%Y-%m-%d %H:%M:%S'),
+                            'is_current': os.path.abspath(filepath) == os.path.abspath(self.csv_path)
+                        })
+                    except Exception as e:
+                        print(f"[WARNING] Failed to get stats for {filename}: {e}")
+
+            # Sort by modification time (newest first)
+            csv_files.sort(key=lambda x: x['modified'], reverse=True)
+
+            print(f"[INFO] Found {len(csv_files)} CSV files in {data_dir}")
+
+            return {
+                'success': True,
+                'files': csv_files,
+                'data_dir': data_dir
+            }
+
+        except Exception as e:
+            print(f"[ERROR] Failed to list CSV files: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'files': []
+            }
+
+    def update_csv_path(self, csv_filename: str) -> dict:
+        """Update the CSV path to load a different file.
+
+        Args:
+            csv_filename: Name of the CSV file (with extension) in src/data folder
+
+        Returns:
+            dict with success status and message
+        """
+        # Construct path to CSV in src/data folder
+        data_dir = os.path.join(os.path.dirname(__file__), '..', 'src', 'data')
+        new_csv_path = os.path.join(data_dir, csv_filename)
+
+        # Check if file exists
+        if not os.path.exists(new_csv_path):
+            error_msg = f'CSV file not found: {csv_filename}'
+            print(f"[ERROR] {error_msg}")
+            print(f"[ERROR] Searched in: {data_dir}")
+            return {
+                'success': False,
+                'error': error_msg
+            }
+
+        # Update the CSV path
+        old_path = self.csv_path
+        self.csv_path = new_csv_path
+
+        # Reset caches when loading new CSV
+        self.line_count_cache = None
+        self.line_count_mtime = None
+        self.last_file_position = 0
+        self.report_status_cache = None
+        self.report_cache_time = None
+
+        # Log success
+        print(f"[INFO] CSV loaded successfully: {csv_filename}")
+        print(f"[INFO] Previous path: {old_path}")
+        print(f"[INFO] New path: {new_csv_path}")
+
+        # Get and log initial stats
+        size_mb = self.get_csv_size_mb()
+        line_count = self.get_csv_line_count()
+        print(f"[INFO] CSV size: {size_mb:.2f} MB, Lines: {line_count:,}")
+
+        return {
+            'success': True,
+            'message': f'Loaded CSV: {csv_filename}',
+            'csv_path': new_csv_path
+        }
+
+    def run_simulators_async(self):
+        """Run all simulators in a background thread."""
+        def run():
+            print(f"[INFO] Starting all simulators")
+
+            # Update status to running
+            with self.status_lock:
+                self.simulator_status = {
+                    'status': 'running',
+                    'message': 'Running data simulators...',
+                    'started_at': datetime.now().isoformat(),
+                    'completed_at': None
+                }
+
+            try:
+                # Get the path to run_all_simulators.py
+                src_dir = os.path.join(os.path.dirname(__file__), '..', 'src')
+                run_simulators_path = os.path.join(src_dir, 'run_all_simulators.py')
+
+                print(f"[INFO] Executing: {sys.executable} {run_simulators_path}")
+                print(f"[INFO] Working directory: {src_dir}")
+
+                # Run the simulators script
+                result = subprocess.run(
+                    [sys.executable, run_simulators_path],
+                    cwd=src_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=600  # 10 minute timeout
+                )
+
+                if result.returncode == 0:
+                    print(f"[SUCCESS] Simulators completed")
+                    if result.stdout:
+                        print(f"[OUTPUT] {result.stdout.strip()}")
+
+                    # Update status to complete
+                    with self.status_lock:
+                        self.simulator_status = {
+                            'status': 'complete',
+                            'message': 'Simulators completed successfully',
+                            'started_at': self.simulator_status['started_at'],
+                            'completed_at': datetime.now().isoformat()
+                        }
+                else:
+                    print(f"[ERROR] Simulators failed (exit code: {result.returncode})")
+                    if result.stderr:
+                        print(f"[STDERR] {result.stderr.strip()}")
+                    if result.stdout:
+                        print(f"[STDOUT] {result.stdout.strip()}")
+
+                    # Update status to error
+                    with self.status_lock:
+                        self.simulator_status = {
+                            'status': 'error',
+                            'message': f'Simulators failed: {result.stderr[:100] if result.stderr else "Unknown error"}',
+                            'started_at': self.simulator_status['started_at'],
+                            'completed_at': datetime.now().isoformat()
+                        }
+
+            except subprocess.TimeoutExpired:
+                print(f"[ERROR] Simulators timed out after 10 minutes")
+                with self.status_lock:
+                    self.simulator_status = {
+                        'status': 'error',
+                        'message': 'Simulators timed out after 10 minutes',
+                        'started_at': self.simulator_status['started_at'],
+                        'completed_at': datetime.now().isoformat()
+                    }
+            except Exception as e:
+                print(f"[ERROR] Exception running simulators: {str(e)}")
+                print(f"[ERROR] Exception type: {type(e).__name__}")
+                with self.status_lock:
+                    self.simulator_status = {
+                        'status': 'error',
+                        'message': f'Error: {str(e)}',
+                        'started_at': self.simulator_status.get('started_at'),
+                        'completed_at': datetime.now().isoformat()
+                    }
+
+        # Start simulators in background thread
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+
+    def run_all_analyzers_async(self):
+        """Run all analyzers in a background thread with progress tracking."""
+        def run():
+            print(f"[INFO] Starting all analyzers")
+
+            # Update status to running
+            with self.status_lock:
+                self.all_analyzers_status = {
+                    'status': 'running',
+                    'current': 'Initializing...',
+                    'completed': 0,
+                    'total': 8,
+                    'message': 'Starting all analyzers...',
+                    'started_at': datetime.now().isoformat(),
+                    'completed_at': None
+                }
+
+            try:
+                # Get the path to run_all_analyzers.py
+                src_dir = os.path.join(os.path.dirname(__file__), '..', 'src')
+                run_all_analyzers_path = os.path.join(src_dir, 'run_all_analyzers.py')
+
+                print(f"[INFO] Executing: {sys.executable} {run_all_analyzers_path}")
+                print(f"[INFO] Working directory: {src_dir}")
+
+                # Run the analyzers script
+                result = subprocess.run(
+                    [sys.executable, run_all_analyzers_path],
+                    cwd=src_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=600  # 10 minute timeout
+                )
+
+                if result.returncode == 0:
+                    print(f"[SUCCESS] All analyzers completed")
+                    if result.stdout:
+                        print(f"[OUTPUT] {result.stdout.strip()}")
+
+                    # Update status to complete
+                    with self.status_lock:
+                        self.all_analyzers_status = {
+                            'status': 'complete',
+                            'current': None,
+                            'completed': 8,
+                            'total': 8,
+                            'message': 'All analyzers completed successfully',
+                            'started_at': self.all_analyzers_status['started_at'],
+                            'completed_at': datetime.now().isoformat()
+                        }
+                else:
+                    print(f"[ERROR] Analyzers failed (exit code: {result.returncode})")
+                    if result.stderr:
+                        print(f"[STDERR] {result.stderr.strip()}")
+                    if result.stdout:
+                        print(f"[STDOUT] {result.stdout.strip()}")
+
+                    # Update status to error
+                    with self.status_lock:
+                        self.all_analyzers_status = {
+                            'status': 'error',
+                            'current': None,
+                            'completed': self.all_analyzers_status.get('completed', 0),
+                            'total': 8,
+                            'message': f'Analyzers failed: {result.stderr[:100] if result.stderr else "Unknown error"}',
+                            'started_at': self.all_analyzers_status['started_at'],
+                            'completed_at': datetime.now().isoformat()
+                        }
+
+            except subprocess.TimeoutExpired:
+                print(f"[ERROR] Analyzers timed out after 10 minutes")
+                with self.status_lock:
+                    self.all_analyzers_status = {
+                        'status': 'error',
+                        'current': None,
+                        'completed': self.all_analyzers_status.get('completed', 0),
+                        'total': 8,
+                        'message': 'Analyzers timed out after 10 minutes',
+                        'started_at': self.all_analyzers_status['started_at'],
+                        'completed_at': datetime.now().isoformat()
+                    }
+            except Exception as e:
+                print(f"[ERROR] Exception running analyzers: {str(e)}")
+                print(f"[ERROR] Exception type: {type(e).__name__}")
+                with self.status_lock:
+                    self.all_analyzers_status = {
+                        'status': 'error',
+                        'current': None,
+                        'completed': self.all_analyzers_status.get('completed', 0),
+                        'total': 8,
+                        'message': f'Error: {str(e)}',
+                        'started_at': self.all_analyzers_status.get('started_at'),
+                        'completed_at': datetime.now().isoformat()
+                    }
+
+        # Start analyzers in background thread
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
 
     def run_analyzer_async(self, analyzer_id: str):
         """Run an analyzer in a background thread.
@@ -104,6 +532,8 @@ class StatusViewerServer:
             analyzer_id: ID of the analyzer to run (e.g., 'understanding')
         """
         def run():
+            print(f"[INFO] Starting analyzer: {analyzer_id}")
+
             # Update status to reprocessing
             with self.status_lock:
                 self.analyzer_status[analyzer_id] = {
@@ -116,6 +546,9 @@ class StatusViewerServer:
                 src_dir = os.path.join(os.path.dirname(__file__), '..', 'src')
                 run_analyzer_path = os.path.join(src_dir, 'run_analyzer.py')
 
+                print(f"[INFO] Executing: {sys.executable} {run_analyzer_path} {analyzer_id}")
+                print(f"[INFO] Working directory: {src_dir}")
+
                 # Run the analyzer script
                 result = subprocess.run(
                     [sys.executable, run_analyzer_path, analyzer_id],
@@ -127,6 +560,10 @@ class StatusViewerServer:
 
                 if result.returncode == 0:
                     # Success
+                    print(f"[SUCCESS] Analyzer completed: {analyzer_id}")
+                    if result.stdout:
+                        print(f"[OUTPUT] {result.stdout.strip()}")
+
                     with self.status_lock:
                         self.analyzer_status[analyzer_id] = {
                             'status': 'complete',
@@ -134,6 +571,12 @@ class StatusViewerServer:
                         }
                 else:
                     # Error
+                    print(f"[ERROR] Analyzer failed: {analyzer_id} (exit code: {result.returncode})")
+                    if result.stderr:
+                        print(f"[STDERR] {result.stderr.strip()}")
+                    if result.stdout:
+                        print(f"[STDOUT] {result.stdout.strip()}")
+
                     with self.status_lock:
                         self.analyzer_status[analyzer_id] = {
                             'status': 'error',
@@ -142,13 +585,19 @@ class StatusViewerServer:
                         }
 
             except subprocess.TimeoutExpired:
+                error_msg = 'Analyzer timed out after 5 minutes'
+                print(f"[ERROR] {error_msg}: {analyzer_id}")
+
                 with self.status_lock:
                     self.analyzer_status[analyzer_id] = {
                         'status': 'error',
-                        'error': 'Analyzer timed out after 5 minutes',
+                        'error': error_msg,
                         'failed_at': datetime.now().isoformat()
                     }
             except Exception as e:
+                print(f"[ERROR] Exception running analyzer {analyzer_id}: {str(e)}")
+                print(f"[ERROR] Exception type: {type(e).__name__}")
+
                 with self.status_lock:
                     self.analyzer_status[analyzer_id] = {
                         'status': 'error',
@@ -184,6 +633,31 @@ class StatusViewerServer:
                         pass
                     return
 
+                # List CSV files endpoint
+                if self.path.startswith('/api/list_csv_files'):
+                    try:
+                        print(f"[API] GET /api/list_csv_files")
+
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                        self.send_header('Pragma', 'no-cache')
+                        self.send_header('Expires', '0')
+                        self.end_headers()
+
+                        result = parent.list_csv_files()
+                        self.wfile.write(json.dumps(result, indent=2).encode())
+
+                        print(f"[API] Returned {len(result.get('files', []))} CSV files")
+                    except (BrokenPipeError, ConnectionResetError):
+                        # Client closed connection - ignore
+                        print(f"[API WARNING] Client closed connection during CSV list")
+                        pass
+                    except Exception as e:
+                        print(f"[API ERROR] Exception in list_csv_files: {str(e)}")
+                        print(f"[API ERROR] Exception type: {type(e).__name__}")
+                    return
+
                 # Serve files from report directory
                 self.directory = parent.report_dir
 
@@ -191,6 +665,99 @@ class StatusViewerServer:
                 super().do_GET()
 
             def do_POST(self):
+                # Load CSV endpoint
+                if self.path.startswith('/api/load_csv'):
+                    try:
+                        # Parse csv_filename from query string
+                        parsed = urlparse(self.path)
+                        params = parse_qs(parsed.query)
+                        csv_filename = params.get('csv_filename', [None])[0]
+
+                        print(f"[API] POST /api/load_csv - Filename: {csv_filename}")
+
+                        if not csv_filename:
+                            print(f"[API ERROR] Missing csv_filename parameter")
+                            self.send_response(400)
+                            self.send_header('Content-Type', 'application/json')
+                            self.end_headers()
+                            self.wfile.write(json.dumps({
+                                'success': False,
+                                'error': 'Missing csv_filename parameter'
+                            }).encode())
+                            return
+
+                        # Update CSV path
+                        result = parent.update_csv_path(csv_filename)
+
+                        # Return response
+                        status_code = 200 if result['success'] else 404
+                        print(f"[API] Response status: {status_code}, Success: {result.get('success', False)}")
+
+                        self.send_response(status_code)
+                        self.send_header('Content-Type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps(result).encode())
+                    except (BrokenPipeError, ConnectionResetError):
+                        # Client closed connection - ignore
+                        print(f"[API WARNING] Client closed connection during CSV load")
+                        pass
+                    except Exception as e:
+                        print(f"[API ERROR] Exception in load_csv: {str(e)}")
+                        print(f"[API ERROR] Exception type: {type(e).__name__}")
+                    return
+
+                # Run simulators endpoint
+                if self.path.startswith('/api/run_simulators'):
+                    try:
+                        print(f"[API] POST /api/run_simulators")
+
+                        # Start simulators in background
+                        parent.run_simulators_async()
+
+                        print(f"[API] Simulators background thread started")
+
+                        # Return immediate response
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            'success': True,
+                            'message': 'Simulators started'
+                        }).encode())
+                    except (BrokenPipeError, ConnectionResetError):
+                        print(f"[API WARNING] Client closed connection during simulators start")
+                        pass
+                    except Exception as e:
+                        print(f"[API ERROR] Exception in run_simulators: {str(e)}")
+                        print(f"[API ERROR] Exception type: {type(e).__name__}")
+                    return
+
+                # Run all analyzers endpoint
+                if self.path.startswith('/api/run_all_analyzers'):
+                    try:
+                        print(f"[API] POST /api/run_all_analyzers")
+
+                        # Start all analyzers in background
+                        parent.run_all_analyzers_async()
+
+                        print(f"[API] All analyzers background thread started")
+
+                        # Return immediate response
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            'success': True,
+                            'message': 'All analyzers started'
+                        }).encode())
+                    except (BrokenPipeError, ConnectionResetError):
+                        print(f"[API WARNING] Client closed connection during all analyzers start")
+                        pass
+                    except Exception as e:
+                        print(f"[API ERROR] Exception in run_all_analyzers: {str(e)}")
+                        print(f"[API ERROR] Exception type: {type(e).__name__}")
+                    return
+
                 # Run analyzer endpoint
                 if self.path.startswith('/api/run_analyzer'):
                     try:
@@ -199,7 +766,10 @@ class StatusViewerServer:
                         params = parse_qs(parsed.query)
                         analyzer_id = params.get('analyzer_id', [None])[0]
 
+                        print(f"[API] POST /api/run_analyzer - Analyzer ID: {analyzer_id}")
+
                         if not analyzer_id:
+                            print(f"[API ERROR] Missing analyzer_id parameter")
                             self.send_response(400)
                             self.send_header('Content-Type', 'application/json')
                             self.end_headers()
@@ -212,6 +782,8 @@ class StatusViewerServer:
                         # Start analyzer in background
                         parent.run_analyzer_async(analyzer_id)
 
+                        print(f"[API] Analyzer background thread started: {analyzer_id}")
+
                         # Return immediate response
                         self.send_response(200)
                         self.send_header('Content-Type', 'application/json')
@@ -223,7 +795,11 @@ class StatusViewerServer:
                         }).encode())
                     except (BrokenPipeError, ConnectionResetError):
                         # Client closed connection - ignore
+                        print(f"[API WARNING] Client closed connection during analyzer start")
                         pass
+                    except Exception as e:
+                        print(f"[API ERROR] Exception in run_analyzer: {str(e)}")
+                        print(f"[API ERROR] Exception type: {type(e).__name__}")
                     return
 
                 # Method not allowed for other paths
@@ -503,6 +1079,226 @@ class StatusViewerServer:
             margin-left: 20px;
             line-height: 1.8;
         }
+        /* Admin Panel - macOS Light Mode Style */
+        .admin-panel {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+        .admin-section {
+            margin-bottom: 30px;
+        }
+        .admin-section:last-child {
+            margin-bottom: 0;
+        }
+        .admin-section h3 {
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .admin-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            flex: 1;
+            min-width: 300px;
+        }
+        .control-group label {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .input-group input[type="text"] {
+            flex: 1;
+            background: #ffffff;
+            border: 1px solid #d0d0d0;
+            color: #1a1a1a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .input-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .input-group input[type="text"]::placeholder {
+            color: #999;
+        }
+        .csv-select {
+            flex: 1;
+            background: #ffffff;
+            border: 1px solid #d0d0d0;
+            color: #1a1a1a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .csv-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .csv-select option {
+            background: #ffffff;
+            color: #1a1a1a;
+            padding: 8px;
+        }
+        .csv-info {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+        }
+        .csv-info.current {
+            color: #28a745;
+            font-weight: 600;
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            border: 1px solid #d0d0d0;
+            color: #1a1a1a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background: #e8e8e8;
+            border-color: #667eea;
+        }
+        .btn-secondary:active {
+            transform: scale(0.95);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-primary:disabled {
+            background: #444;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-action {
+            flex: 1;
+            min-width: 200px;
+            background: #ffffff;
+            border: 2px solid #d0d0d0;
+            color: #1a1a1a;
+            padding: 16px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-action:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        .btn-action:active {
+            transform: translateY(0);
+        }
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-icon {
+            font-size: 14px;
+        }
+        .status-message {
+            margin-top: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
+        .status-message.success {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            display: block;
+        }
+        .status-message.error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            display: block;
+        }
+        .status-message.info {
+            background: rgba(0, 123, 255, 0.1);
+            color: #007bff;
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            display: block;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #ffffff;
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-card .stat-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .stat-card .stat-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
     </style>
 </head>
 <body>
@@ -523,29 +1319,65 @@ class StatusViewerServer:
             </div>
 
             <div class="section">
-                <h2>Data Generation Progress</h2>
-                <div class="progress-container">
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress-bar" style="width: 0%">
-                            <span id="progress-text">0%</span>
+                <h2>Admin Panel</h2>
+                <div class="admin-panel">
+                    <div class="admin-section">
+                        <h3>Data Management</h3>
+                        <div class="admin-controls">
+                            <div class="control-group">
+                                <label>Load CSV File</label>
+                                <div class="input-group">
+                                    <select id="csv-selector" class="csv-select">
+                                        <option value="">Loading CSV files...</option>
+                                    </select>
+                                    <button onclick="refreshCSVList()" class="btn-secondary" title="Refresh CSV list">⟳</button>
+                                    <button onclick="loadSelectedCSV()" class="btn-primary">Load CSV</button>
+                                </div>
+                                <div id="csv-info" class="csv-info"></div>
+                                <div id="csv-loader-message" class="status-message"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="progress-stats">
-                        <div class="stat">
-                            <div class="stat-label">CSV Size</div>
-                            <div class="stat-value" id="csv-size">-</div>
+
+                    <div class="admin-section">
+                        <h3>Pipeline Actions</h3>
+                        <div class="admin-controls">
+                            <button onclick="runSimulators()" id="run-simulators-btn" class="btn-action">
+                                <span class="btn-icon">▶</span>
+                                <span class="btn-label">Run Simulators</span>
+                            </button>
+                            <button onclick="runAllAnalyzers()" id="run-all-analyzers-btn" class="btn-action">
+                                <span class="btn-icon">▶</span>
+                                <span class="btn-label">Run All Analyzers</span>
+                            </button>
                         </div>
-                        <div class="stat">
-                            <div class="stat-label">Target</div>
-                            <div class="stat-value" id="csv-target">2048 MB</div>
+                        <div id="pipeline-status" class="status-message"></div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>CSV Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">CSV Size</div>
+                                <div class="stat-value" id="csv-size">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Target Size</div>
+                                <div class="stat-value" id="csv-target">2048 MB</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Progress</div>
+                                <div class="stat-value" id="csv-progress">0%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Total Calls</div>
+                                <div class="stat-value" id="csv-lines">-</div>
+                            </div>
                         </div>
-                        <div class="stat">
-                            <div class="stat-label">Progress</div>
-                            <div class="stat-value" id="csv-progress">0%</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-label">Total Calls</div>
-                            <div class="stat-value" id="csv-lines">-</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="progress-bar" style="width: 0%">
+                                <span id="progress-text">0%</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -591,6 +1423,194 @@ class StatusViewerServer:
             return num.toLocaleString();
         }
 
+        function populateCSVList() {
+            const selector = document.getElementById('csv-selector');
+            const infoDiv = document.getElementById('csv-info');
+
+            fetch('/api/list_csv_files?_=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.files.length > 0) {
+                        // Clear existing options
+                        selector.innerHTML = '';
+
+                        // Add CSV files as options
+                        data.files.forEach(file => {
+                            const option = document.createElement('option');
+                            option.value = file.filename;
+                            option.textContent = `${file.filename} (${file.size_mb} MB)`;
+                            if (file.is_current) {
+                                option.selected = true;
+                            }
+                            selector.appendChild(option);
+                        });
+
+                        // Update info with selected file details
+                        updateCSVInfo();
+                    } else if (data.success && data.files.length === 0) {
+                        selector.innerHTML = '<option value="">No CSV files found</option>';
+                        infoDiv.textContent = '';
+                    } else {
+                        selector.innerHTML = '<option value="">Error loading CSV files</option>';
+                        infoDiv.textContent = data.error || 'Unknown error';
+                        infoDiv.className = 'csv-info';
+                    }
+                })
+                .catch(e => {
+                    console.error('Error listing CSV files:', e);
+                    selector.innerHTML = '<option value="">Failed to load CSV files</option>';
+                    infoDiv.textContent = e.message;
+                    infoDiv.className = 'csv-info';
+                });
+        }
+
+        function updateCSVInfo() {
+            const selector = document.getElementById('csv-selector');
+            const infoDiv = document.getElementById('csv-info');
+            const selectedFilename = selector.value;
+
+            if (!selectedFilename) {
+                infoDiv.textContent = '';
+                return;
+            }
+
+            // Fetch file details
+            fetch('/api/list_csv_files?_=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const file = data.files.find(f => f.filename === selectedFilename);
+                        if (file) {
+                            infoDiv.textContent = `Modified: ${file.modified_display} | Size: ${file.size_mb} MB`;
+                            infoDiv.className = file.is_current ? 'csv-info current' : 'csv-info';
+                        }
+                    }
+                })
+                .catch(e => {
+                    console.error('Error getting CSV info:', e);
+                });
+        }
+
+        function refreshCSVList() {
+            populateCSVList();
+        }
+
+        function loadSelectedCSV() {
+            const selector = document.getElementById('csv-selector');
+            const messageDiv = document.getElementById('csv-loader-message');
+            const csvFilename = selector.value;
+
+            if (!csvFilename) {
+                messageDiv.className = 'status-message error';
+                messageDiv.textContent = 'Please select a CSV file';
+                return;
+            }
+
+            // Reset message
+            messageDiv.className = 'status-message info';
+            messageDiv.textContent = 'Loading...';
+
+            // Send POST request to load CSV
+            fetch('/api/load_csv?csv_filename=' + encodeURIComponent(csvFilename), {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.className = 'status-message success';
+                    messageDiv.textContent = data.message;
+                    // Refresh CSV list to update current file indicator
+                    populateCSVList();
+                    // Trigger immediate status update
+                    updateStatus();
+                } else {
+                    messageDiv.className = 'status-message error';
+                    messageDiv.textContent = 'Error: ' + data.error;
+                }
+            })
+            .catch(e => {
+                console.error('Error loading CSV:', e);
+                messageDiv.className = 'status-message error';
+                messageDiv.textContent = 'Failed to load CSV: ' + e.message;
+            });
+        }
+
+        function runSimulators() {
+            const button = document.getElementById('run-simulators-btn');
+            const messageDiv = document.getElementById('pipeline-status');
+
+            button.disabled = true;
+            button.querySelector('.btn-label').textContent = 'Running...';
+            messageDiv.className = 'status-message info';
+            messageDiv.textContent = 'Starting simulators...';
+
+            fetch('/api/run_simulators', {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.className = 'status-message success';
+                    messageDiv.textContent = data.message;
+                    // Re-enable after a delay
+                    setTimeout(() => {
+                        button.disabled = false;
+                        button.querySelector('.btn-label').textContent = 'Run Simulators';
+                    }, 3000);
+                } else {
+                    messageDiv.className = 'status-message error';
+                    messageDiv.textContent = 'Error: ' + data.error;
+                    button.disabled = false;
+                    button.querySelector('.btn-label').textContent = 'Run Simulators';
+                }
+            })
+            .catch(e => {
+                console.error('Error running simulators:', e);
+                messageDiv.className = 'status-message error';
+                messageDiv.textContent = 'Failed to start simulators: ' + e.message;
+                button.disabled = false;
+                button.querySelector('.btn-label').textContent = 'Run Simulators';
+            });
+        }
+
+        function runAllAnalyzers() {
+            const button = document.getElementById('run-all-analyzers-btn');
+            const messageDiv = document.getElementById('pipeline-status');
+
+            button.disabled = true;
+            button.querySelector('.btn-label').textContent = 'Running...';
+            messageDiv.className = 'status-message info';
+            messageDiv.textContent = 'Starting all analyzers...';
+
+            fetch('/api/run_all_analyzers', {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.className = 'status-message success';
+                    messageDiv.textContent = data.message;
+                    // Re-enable after a delay
+                    setTimeout(() => {
+                        button.disabled = false;
+                        button.querySelector('.btn-label').textContent = 'Run All Analyzers';
+                    }, 3000);
+                } else {
+                    messageDiv.className = 'status-message error';
+                    messageDiv.textContent = 'Error: ' + data.error;
+                    button.disabled = false;
+                    button.querySelector('.btn-label').textContent = 'Run All Analyzers';
+                }
+            })
+            .catch(e => {
+                console.error('Error running analyzers:', e);
+                messageDiv.className = 'status-message error';
+                messageDiv.textContent = 'Failed to start analyzers: ' + e.message;
+                button.disabled = false;
+                button.querySelector('.btn-label').textContent = 'Run All Analyzers';
+            });
+        }
+
         function runAnalyzer(analyzerId, button) {
             // Disable the button
             button.disabled = true;
@@ -631,6 +1651,49 @@ class StatusViewerServer:
                     const progressBar = document.getElementById('progress-bar');
                     progressBar.style.width = csv.progress_pct + '%';
                     document.getElementById('progress-text').textContent = csv.progress_pct.toFixed(1) + '%';
+
+                    // Update pipeline status based on simulator/analyzer progress
+                    const pipelineMessage = document.getElementById('pipeline-status');
+                    const simulatorBtn = document.getElementById('run-simulators-btn');
+                    const analyzerBtn = document.getElementById('run-all-analyzers-btn');
+
+                    // Handle simulator status
+                    if (data.simulator_status && data.simulator_status.status === 'running') {
+                        pipelineMessage.className = 'status-message info';
+                        pipelineMessage.textContent = data.simulator_status.message;
+                        simulatorBtn.disabled = true;
+                        simulatorBtn.querySelector('.btn-label').textContent = 'Running...';
+                    } else if (data.simulator_status && data.simulator_status.status === 'complete') {
+                        pipelineMessage.className = 'status-message success';
+                        pipelineMessage.textContent = data.simulator_status.message;
+                        simulatorBtn.disabled = false;
+                        simulatorBtn.querySelector('.btn-label').textContent = 'Run Simulators';
+                    } else if (data.simulator_status && data.simulator_status.status === 'error') {
+                        pipelineMessage.className = 'status-message error';
+                        pipelineMessage.textContent = data.simulator_status.message;
+                        simulatorBtn.disabled = false;
+                        simulatorBtn.querySelector('.btn-label').textContent = 'Run Simulators';
+                    }
+
+                    // Handle all analyzers status
+                    if (data.all_analyzers_status && data.all_analyzers_status.status === 'running') {
+                        pipelineMessage.className = 'status-message info';
+                        const progress = `${data.all_analyzers_status.completed}/${data.all_analyzers_status.total}`;
+                        const current = data.all_analyzers_status.current ? ` - ${data.all_analyzers_status.current}` : '';
+                        pipelineMessage.textContent = `Running analyzers (${progress})${current}`;
+                        analyzerBtn.disabled = true;
+                        analyzerBtn.querySelector('.btn-label').textContent = 'Running...';
+                    } else if (data.all_analyzers_status && data.all_analyzers_status.status === 'complete') {
+                        pipelineMessage.className = 'status-message success';
+                        pipelineMessage.textContent = data.all_analyzers_status.message;
+                        analyzerBtn.disabled = false;
+                        analyzerBtn.querySelector('.btn-label').textContent = 'Run All Analyzers';
+                    } else if (data.all_analyzers_status && data.all_analyzers_status.status === 'error') {
+                        pipelineMessage.className = 'status-message error';
+                        pipelineMessage.textContent = data.all_analyzers_status.message;
+                        analyzerBtn.disabled = false;
+                        analyzerBtn.querySelector('.btn-label').textContent = 'Run All Analyzers';
+                    }
 
                     // Update report grid
                     const reportGrid = document.getElementById('report-grid');
@@ -682,6 +1745,12 @@ class StatusViewerServer:
                     console.log('Status update failed:', e);
                 });
         }
+
+        // Add change listener to CSV selector
+        document.getElementById('csv-selector').addEventListener('change', updateCSVInfo);
+
+        // Initialize CSV dropdown
+        populateCSVList();
 
         // Update immediately and then every 1 second
         updateStatus();
