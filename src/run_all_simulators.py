@@ -2,8 +2,16 @@
 """
 Continuous Data Generation Orchestrator
 
-Cycles through all 11 scenario simulators, generating traffic until
-the CSV file reaches 50MB, then stops automatically.
+Cycles through all 12 scenario simulators, generating traffic until
+the CSV file reaches the target size (default 50MB), then stops automatically.
+
+Usage:
+    python run_all_simulators.py [size_in_mb]
+
+Examples:
+    python run_all_simulators.py        # Generate 50 MB (default)
+    python run_all_simulators.py 100    # Generate 100 MB
+    python run_all_simulators.py 2000   # Generate 2000 MB (2 GB)
 """
 
 import os
@@ -50,9 +58,25 @@ def draw_progress_bar(current_mb: float, target_mb: float, width: int = 50) -> s
 
 
 def main():
-    """Run continuous generation until 2GB."""
+    """Run continuous generation until target size is reached."""
+    # Parse command line argument for target size
+    target_size_mb = 50.0  # Default 50 MB
+
+    if len(sys.argv) > 1:
+        try:
+            target_size_mb = float(sys.argv[1])
+            if target_size_mb <= 0:
+                print("Error: Size must be positive")
+                print("Usage: python run_all_simulators.py [size_in_mb]")
+                print("Example: python run_all_simulators.py 100")
+                sys.exit(1)
+        except ValueError:
+            print(f"Error: Invalid size '{sys.argv[1]}'. Must be a number.")
+            print("Usage: python run_all_simulators.py [size_in_mb]")
+            print("Example: python run_all_simulators.py 100")
+            sys.exit(1)
+
     csv_path = 'data/simulated_calls.csv'
-    target_size_mb = 2048.0  # 2 GB
     seed = 42
 
     # Ensure data directory exists
@@ -128,6 +152,9 @@ def main():
 
             # Run the scenario
             simulator.run(**config)
+
+            # Flush any remaining batched data to disk
+            simulator.flush_batch()
 
             # Show progress after each scenario
             new_size = get_csv_size_mb(csv_path)

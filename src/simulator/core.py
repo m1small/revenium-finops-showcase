@@ -110,17 +110,28 @@ class AICallSimulator:
     FEATURES = ['chat', 'code', 'search', 'summarize', 'translate']
     ORGANIZATIONS = [f'org_{i:03d}' for i in range(1, 51)]  # 50 organizations
 
-    def __init__(self, output_path: str = 'data/simulated_calls.csv', seed: int = 42):
+    # CSV field names (defined once for reuse)
+    CSV_FIELDNAMES = [
+        'call_id', 'timestamp', 'customer_id', 'organization_id', 'product_id',
+        'feature_id', 'provider', 'model', 'input_tokens', 'output_tokens',
+        'total_tokens', 'cost_usd', 'latency_ms', 'status', 'environment',
+        'region', 'subscription_tier', 'tier_price_usd', 'customer_archetype'
+    ]
+
+    def __init__(self, output_path: str = 'data/simulated_calls.csv', seed: int = 42, batch_size: int = 5000):
         """Initialize the simulator.
 
         Args:
             output_path: Path to output CSV file
             seed: Random seed for reproducibility
+            batch_size: Number of calls to accumulate before writing to disk (default: 5000)
         """
         self.output_path = output_path
         self.rng = random.Random(seed)
         self.customers = self._generate_customers(500)  # 500 unique customers
         self.call_count = 0
+        self.batch_size = batch_size
+        self.batch_buffer = []  # Buffer for batch writing
 
     def _generate_customers(self, count: int) -> List[Dict[str, Any]]:
         """Generate customer profiles with assigned archetypes and tiers.
@@ -295,24 +306,39 @@ class AICallSimulator:
     def write_csv_header(self):
         """Write CSV header with all 19 fields."""
         with open(self.output_path, 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=[
-                'call_id', 'timestamp', 'customer_id', 'organization_id', 'product_id',
-                'feature_id', 'provider', 'model', 'input_tokens', 'output_tokens',
-                'total_tokens', 'cost_usd', 'latency_ms', 'status', 'environment',
-                'region', 'subscription_tier', 'tier_price_usd', 'customer_archetype'
-            ])
+            writer = csv.DictWriter(f, fieldnames=self.CSV_FIELDNAMES)
             writer.writeheader()
 
     def append_call(self, call: Dict[str, Any]):
-        """Append a call to the CSV file."""
+        """Append a call to the CSV file (batched for performance).
+
+        Calls are buffered and written in batches to minimize file I/O overhead.
+        Call flush_batch() to write any remaining buffered calls.
+        """
+        self.batch_buffer.append(call)
+
+        # Write batch when buffer is full
+        if len(self.batch_buffer) >= self.batch_size:
+            self.flush_batch()
+
+    def append_batch(self, calls: List[Dict[str, Any]]):
+        """Append multiple calls efficiently in a single write operation.
+
+        Args:
+            calls: List of call dictionaries to write
+        """
+        if not calls:
+            return
+
         with open(self.output_path, 'a', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=[
-                'call_id', 'timestamp', 'customer_id', 'organization_id', 'product_id',
-                'feature_id', 'provider', 'model', 'input_tokens', 'output_tokens',
-                'total_tokens', 'cost_usd', 'latency_ms', 'status', 'environment',
-                'region', 'subscription_tier', 'tier_price_usd', 'customer_archetype'
-            ])
-            writer.writerow(call)
+            writer = csv.DictWriter(f, fieldnames=self.CSV_FIELDNAMES)
+            writer.writerows(calls)
+
+    def flush_batch(self):
+        """Flush any remaining calls in the batch buffer to disk."""
+        if self.batch_buffer:
+            self.append_batch(self.batch_buffer)
+            self.batch_buffer = []
 
     def generate_batch(self, num_calls: int, start_time: Optional[datetime] = None) -> List[Dict[str, Any]]:
         """Generate a batch of calls.
