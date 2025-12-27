@@ -19,6 +19,8 @@ import sys
 import time
 from datetime import datetime
 
+from config import TARGET_SIZE_MB, DATA_CSV_PATH
+
 # Import all scenario simulators
 from simulator.scenarios.base_traffic import BaseTrafficSimulator
 from simulator.scenarios.seasonal_pattern import SeasonalPatternSimulator
@@ -60,7 +62,7 @@ def draw_progress_bar(current_mb: float, target_mb: float, width: int = 50) -> s
 def main():
     """Run continuous generation until target size is reached."""
     # Parse command line argument for target size
-    target_size_mb = 50.0  # Default 50 MB
+    target_size_mb = TARGET_SIZE_MB  # Default from config (50 MB)
 
     if len(sys.argv) > 1:
         try:
@@ -76,7 +78,7 @@ def main():
             print("Example: python run_all_simulators.py 100")
             sys.exit(1)
 
-    csv_path = 'data/simulated_calls.csv'
+    csv_path = DATA_CSV_PATH
     seed = 42
 
     # Ensure data directory exists

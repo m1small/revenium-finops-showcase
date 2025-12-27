@@ -21,6 +21,11 @@ from analyzers.finops.alignment import AlignmentAnalyzer
 from analyzers.ubr.profitability import CustomerProfitabilityAnalyzer
 from analyzers.ubr.pricing import PricingStrategyAnalyzer
 from analyzers.ubr.features import FeatureEconomicsAnalyzer
+from analyzers.dataset_overview import DatasetOverviewAnalyzer
+from analyzers.token_economics import TokenEconomicsAnalyzer
+from analyzers.geographic_latency import GeographicLatencyAnalyzer
+from analyzers.churn_growth import ChurnGrowthAnalyzer
+from analyzers.abuse_detection import AbuseDetectionAnalyzer
 
 from generators import (
     generate_understanding_report, generate_performance_report,
@@ -28,6 +33,11 @@ from generators import (
     generate_alignment_report, generate_profitability_report,
     generate_pricing_report, generate_features_report
 )
+from generators.overview_generator import generate_overview_report
+from generators.token_economics_generator import generate_token_economics_report
+from generators.geographic_latency_generator import generate_geographic_latency_report
+from generators.churn_growth_generator import generate_churn_growth_report
+from generators.abuse_detection_generator import generate_abuse_detection_report
 
 
 # Registry of all available analyzers
@@ -87,6 +97,41 @@ ANALYZER_REGISTRY = {
         'description': 'Feature profitability, investment recommendations',
         'analyzer_class': FeatureEconomicsAnalyzer,
         'html_generator': generate_features_report
+    },
+    'dataset_overview': {
+        'name': 'Dataset Overview',
+        'filename': 'dataset_overview.html',
+        'description': 'Comprehensive dataset statistics and analysis',
+        'analyzer_class': DatasetOverviewAnalyzer,
+        'html_generator': generate_overview_report
+    },
+    'token_economics': {
+        'name': 'Token Economics',
+        'filename': 'token_economics.html',
+        'description': 'Token usage patterns and cost efficiency analysis',
+        'analyzer_class': TokenEconomicsAnalyzer,
+        'html_generator': generate_token_economics_report
+    },
+    'geographic_latency': {
+        'name': 'Geographic Latency',
+        'filename': 'geographic_latency.html',
+        'description': 'Regional performance and latency analysis',
+        'analyzer_class': GeographicLatencyAnalyzer,
+        'html_generator': generate_geographic_latency_report
+    },
+    'churn_growth': {
+        'name': 'Churn & Growth',
+        'filename': 'churn_growth.html',
+        'description': 'Customer lifecycle patterns and growth trends',
+        'analyzer_class': ChurnGrowthAnalyzer,
+        'html_generator': generate_churn_growth_report
+    },
+    'abuse_detection': {
+        'name': 'Abuse Detection',
+        'filename': 'abuse_detection.html',
+        'description': 'Anomaly and abuse pattern detection',
+        'analyzer_class': AbuseDetectionAnalyzer,
+        'html_generator': generate_abuse_detection_report
     }
 }
 
