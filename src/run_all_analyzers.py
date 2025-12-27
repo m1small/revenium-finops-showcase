@@ -2,7 +2,7 @@
 """
 Run All Analyzers
 
-Generates all 8 analysis reports (5 FinOps + 3 UBR) from simulated data.
+Generates all 13 analysis reports (1 Overview + 5 FinOps + 3 UBR + 4 Advanced) from simulated data.
 """
 
 import os
@@ -19,6 +19,11 @@ from analyzers.finops.alignment import AlignmentAnalyzer
 from analyzers.ubr.profitability import CustomerProfitabilityAnalyzer
 from analyzers.ubr.pricing import PricingStrategyAnalyzer
 from analyzers.ubr.features import FeatureEconomicsAnalyzer
+from analyzers.dataset_overview import DatasetOverviewAnalyzer
+from analyzers.token_economics import TokenEconomicsAnalyzer
+from analyzers.geographic_latency import GeographicLatencyAnalyzer
+from analyzers.churn_growth import ChurnGrowthAnalyzer
+from analyzers.abuse_detection import AbuseDetectionAnalyzer
 
 from analyzers.common import load_calls_from_csv, format_currency, format_large_number
 from generators import (
@@ -27,6 +32,11 @@ from generators import (
     generate_alignment_report, generate_profitability_report,
     generate_pricing_report, generate_features_report
 )
+from generators.overview_generator import generate_overview_report
+from generators.token_economics_generator import generate_token_economics_report
+from generators.geographic_latency_generator import generate_geographic_latency_report
+from generators.churn_growth_generator import generate_churn_growth_report
+from generators.abuse_detection_generator import generate_abuse_detection_report
 
 
 def generate_generic_report(title: str, description: str, data: dict, output_path: str):
@@ -145,8 +155,15 @@ def main():
     print(f"Loaded {len(calls):,} calls")
     print()
 
-    # Define all 8 reports with their analyzer classes and HTML generators
+    # Define all 13 reports with their analyzer classes and HTML generators
     reports = [
+        {
+            'name': 'Dataset Overview',
+            'filename': 'dataset_overview.html',
+            'description': 'Comprehensive dataset statistics and distribution metrics',
+            'analyzer_class': DatasetOverviewAnalyzer,
+            'html_generator': generate_overview_report
+        },
         {
             'name': 'Understanding Usage & Cost',
             'filename': 'understanding.html',
@@ -202,12 +219,40 @@ def main():
             'description': 'Feature profitability, investment recommendations',
             'analyzer_class': FeatureEconomicsAnalyzer,
             'html_generator': generate_features_report
+        },
+        {
+            'name': 'Token Economics & Efficiency',
+            'filename': 'token_economics.html',
+            'description': 'Token usage patterns and cost efficiency analysis',
+            'analyzer_class': TokenEconomicsAnalyzer,
+            'html_generator': generate_token_economics_report
+        },
+        {
+            'name': 'Geographic & Latency Intelligence',
+            'filename': 'geographic_latency.html',
+            'description': 'Regional performance, cost arbitrage, latency optimization',
+            'analyzer_class': GeographicLatencyAnalyzer,
+            'html_generator': generate_geographic_latency_report
+        },
+        {
+            'name': 'Churn Risk & Growth Signals',
+            'filename': 'churn_growth.html',
+            'description': 'Customer engagement, expansion opportunities, retention insights',
+            'analyzer_class': ChurnGrowthAnalyzer,
+            'html_generator': generate_churn_growth_report
+        },
+        {
+            'name': 'Abuse Detection & Security',
+            'filename': 'abuse_detection.html',
+            'description': 'Cost anomalies, tier gaming, usage abuse detection',
+            'analyzer_class': AbuseDetectionAnalyzer,
+            'html_generator': generate_abuse_detection_report
         }
     ]
 
     # Generate each report
     for i, report in enumerate(reports, 1):
-        print(f"[{i}/8] Generating: {report['name']}...")
+        print(f"[{i}/{len(reports)}] Generating: {report['name']}...")
 
         output_path = f"reports/html/{report['filename']}"
 
