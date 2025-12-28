@@ -37,3 +37,19 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Claude Code
+.claude/
+.claude.json
+
+# Cache directories
+.cache/
+*.pt
+
+# Application caches
+**/libquery-engine*
+yt-dlp*.json
+
+# User config files
+.gitconfig
+.CFUserTextEncoding
