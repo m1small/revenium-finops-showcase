@@ -824,10 +824,10 @@ class StatusViewerServer:
         # Ensure report directory exists
         os.makedirs(self.report_dir, exist_ok=True)
 
-        # Create status page if index.html doesn't exist
+        # Always generate fresh index.html on server start
         index_path = os.path.join(self.report_dir, 'index.html')
-        if not os.path.exists(index_path):
-            self.create_status_page(index_path)
+        self.create_status_page(index_path)
+        print(f"[INFO] Generated index.html at {index_path}")
 
         with socketserver.TCPServer(("", self.port), StatusHandler) as httpd:
             print()
@@ -862,6 +862,10 @@ class StatusViewerServer:
                 httpd.serve_forever()
             except KeyboardInterrupt:
                 print("\n\nShutting down server...")
+                # Clean up index.html on server stop
+                if os.path.exists(index_path):
+                    os.remove(index_path)
+                    print(f"[INFO] Deleted index.html at {index_path}")
                 print("Server stopped.")
 
     def create_status_page(self, output_path: str):
