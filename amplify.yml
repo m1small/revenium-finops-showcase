@@ -1,0 +1,17 @@
+version: 1
+frontend:
+  phases:
+    build:
+      commands:
+        - cd src
+        - python3 run_all_simulators.py 2048
+        - python3 run_all_analyzers.py
+        - cd ..
+        - python3 -c "import sys; sys.path.insert(0, 'viewer'); from serve import StatusViewerServer; StatusViewerServer(report_dir='reports/html').create_status_page('reports/html/index.html', static_mode=True)"
+  artifacts:
+    baseDirectory: reports/html
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - src/data/simulated_calls.csv

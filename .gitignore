@@ -22,7 +22,13 @@ wheels/
 
 # Generated data
 src/data/*.csv
-src/reports/
+
+# Generated reports (exclude from git, generated during Amplify build)
+reports/html/*.html
+reports/html/manifest.json
+
+# Keep reports directory structure
+!reports/html/.gitkeep
 
 # IDE
 .vscode/

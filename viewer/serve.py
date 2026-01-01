@@ -868,8 +868,295 @@ class StatusViewerServer:
                     print(f"[INFO] Deleted index.html at {index_path}")
                 print("Server stopped.")
 
-    def create_status_page(self, output_path: str):
-        """Create the main status/index page."""
+    def create_static_index(self, output_path: str):
+        """Create a static index page for AWS Amplify hosting (no API calls, no live updates)."""
+        import json
+
+        # Find all HTML reports in the report directory
+        report_configs = [
+            {'filename': 'understanding_cost_usage.html', 'title': 'Understanding Usage & Cost', 'category': 'FinOps'},
+            {'filename': 'performance_tracking.html', 'title': 'Performance Tracking', 'category': 'FinOps'},
+            {'filename': 'realtime_decision_making.html', 'title': 'Real-Time Decision Making', 'category': 'FinOps'},
+            {'filename': 'optimization_opportunities.html', 'title': 'Rate Optimization', 'category': 'FinOps'},
+            {'filename': 'organizational_alignment.html', 'title': 'Organizational Alignment', 'category': 'FinOps'},
+            {'filename': 'customer_profitability.html', 'title': 'Customer Profitability', 'category': 'Usage-Based Revenue'},
+            {'filename': 'pricing_strategy.html', 'title': 'Pricing Strategy', 'category': 'Usage-Based Revenue'},
+            {'filename': 'feature_economics.html', 'title': 'Feature Economics', 'category': 'Usage-Based Revenue'},
+            {'filename': 'dataset_overview.html', 'title': 'Dataset Overview', 'category': 'Advanced Analytics'},
+            {'filename': 'token_economics.html', 'title': 'Token Economics', 'category': 'Advanced Analytics'},
+            {'filename': 'geographic_latency.html', 'title': 'Geographic Latency', 'category': 'Advanced Analytics'},
+            {'filename': 'churn_growth.html', 'title': 'Churn & Growth Analysis', 'category': 'Advanced Analytics'},
+            {'filename': 'abuse_detection.html', 'title': 'Abuse Detection', 'category': 'Advanced Analytics'}
+        ]
+
+        # Check which reports exist
+        available_reports = []
+        for config in report_configs:
+            filepath = os.path.join(self.report_dir, config['filename'])
+            if os.path.exists(filepath):
+                size_kb = os.path.getsize(filepath) / 1024
+                available_reports.append({
+                    **config,
+                    'size_kb': size_kb
+                })
+
+        # Read manifest if available
+        manifest_path = os.path.join(self.report_dir, 'manifest.json')
+        manifest = {}
+        if os.path.exists(manifest_path):
+            try:
+                with open(manifest_path, 'r') as f:
+                    manifest = json.load(f)
+            except Exception:
+                pass
+
+        generation_time = manifest.get('generated_at', 'Unknown')
+        data_size_mb = manifest.get('data_size_mb', 'Unknown')
+        total_calls_raw = manifest.get('total_calls', 'Unknown')
+
+        # Format total_calls with commas if it's a number
+        if isinstance(total_calls_raw, (int, float)):
+            total_calls = f"{int(total_calls_raw):,}"
+        else:
+            total_calls = total_calls_raw
+
+        # Group reports by category
+        categories = {}
+        for report in available_reports:
+            cat = report['category']
+            if cat not in categories:
+                categories[cat] = []
+            categories[cat].append(report)
+
+        # Build report cards HTML
+        report_cards_html = ''
+        for category, reports in categories.items():
+            report_cards_html += f'<h3 class="category-header">{category}</h3>\n'
+            report_cards_html += '<div class="report-grid">\n'
+            for report in reports:
+                report_cards_html += f'''
+                <div class="report-card">
+                    <div class="status-badge complete">✓ Available</div>
+                    <h4>{report['title']}</h4>
+                    <p>{report['size_kb']:.1f} KB</p>
+                    <a href="{report['filename']}" class="view-button">View Report →</a>
+                </div>
+'''
+            report_cards_html += '</div>\n\n'
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Revenium FinOps Showcase - Analysis Reports</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }}
+        .header {{
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }}
+        .header h1 {{
+            font-size: 36px;
+            margin-bottom: 10px;
+        }}
+        .header p {{
+            font-size: 16px;
+            opacity: 0.8;
+        }}
+        .content {{
+            padding: 40px;
+        }}
+        .info-box {{
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+            margin-bottom: 30px;
+        }}
+        .info-box h3 {{
+            color: #1976d2;
+            margin-bottom: 10px;
+        }}
+        .info-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }}
+        .info-item {{
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+        }}
+        .info-label {{
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .info-value {{
+            font-size: 20px;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-top: 5px;
+        }}
+        .category-header {{
+            color: #1a1a1a;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+            font-size: 20px;
+        }}
+        .category-header:first-of-type {{
+            margin-top: 0;
+        }}
+        .report-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }}
+        .report-card {{
+            background: #f1f8f4;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s;
+            position: relative;
+        }}
+        .report-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }}
+        .status-badge {{
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            background: #4CAF50;
+        }}
+        .report-card h4 {{
+            margin-bottom: 10px;
+            color: #1a1a1a;
+            padding-right: 80px;
+            font-size: 16px;
+        }}
+        .report-card p {{
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }}
+        .view-button {{
+            display: inline-block;
+            background: #2196f3;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 14px;
+        }}
+        .view-button:hover {{
+            background: #1976d2;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }}
+        .github-link {{
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }}
+        .github-link:hover {{
+            text-decoration: underline;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Revenium FinOps Showcase</h1>
+            <p>AI Cost Management & Usage-Based Revenue Analysis</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <h3>Dataset Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Generated At</div>
+                        <div class="info-value">{generation_time}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Data Size</div>
+                        <div class="info-value">{data_size_mb} MB</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Total API Calls</div>
+                        <div class="info-value">{total_calls}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Reports Available</div>
+                        <div class="info-value">{len(available_reports)}</div>
+                    </div>
+                </div>
+            </div>
+
+            {report_cards_html}
+
+            <div class="footer">
+                <p>This is a static showcase deployment hosted on AWS Amplify</p>
+                <p>For the live local version with data generation and real-time analysis, see the <a href="https://github.com/revenium/finops-showcase" class="github-link">GitHub repository</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+        with open(output_path, 'w') as f:
+            f.write(html)
+
+    def create_status_page(self, output_path: str, static_mode: bool = False):
+        """Create the main status/index page.
+
+        Args:
+            output_path: Path to write the HTML file
+            static_mode: If True, generate a static page for hosting (no API calls, no live updates)
+        """
+
+        # If static mode, use the simplified static index
+        if static_mode:
+            return self.create_static_index(output_path)
+
+        # Otherwise, generate the full dynamic page for local server
         html = """<!DOCTYPE html>
 <html>
 <head>

@@ -188,6 +188,28 @@ Data generation: 1000+ calls per second with batch writing (5000 records per bat
 
 The system has been tested with datasets up to 2GB containing millions of API call records.
 
+## Deployment
+
+### Local Development
+
+```bash
+cd viewer
+python3 serve.py
+# Access at http://localhost:8000
+```
+
+### AWS Amplify Static Hosting
+
+1. Connect GitHub repository to AWS Amplify
+2. Amplify auto-detects `amplify.yml` and builds:
+   - Generates 2GB CSV dataset
+   - Runs all 13 analyzers
+   - Creates static index.html
+3. Deploys to CloudFront CDN
+
+**Build artifacts:** `reports/html/` (all HTML reports + index)
+**Build time:** ~15-20 minutes
+
 ## License
 
 This is a demonstration system for showcasing Revenium FinOps capabilities.
