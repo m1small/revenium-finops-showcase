@@ -21,7 +21,9 @@ wheels/
 *.egg
 
 # Generated data
+# Note: simulated_calls.csv is committed for GitHub Pages deployment
 src/data/*.csv
+!src/data/simulated_calls.csv
 
 # Generated reports (exclude from git, generated during Amplify build)
 reports/html/*.html

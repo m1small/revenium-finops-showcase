@@ -27,7 +27,27 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Check for existing data
+        id: check_data
+        run: |
+          if [ -f "src/data/simulated_calls.csv" ]; then
+            size=$(stat -f%z "src/data/simulated_calls.csv" 2>/dev/null || stat -c%s "src/data/simulated_calls.csv")
+            size_mb=$((size / 1024 / 1024))
+            echo "Data file exists: ${size_mb}MB"
+            if [ $size_mb -gt 100 ]; then
+              echo "skip_generation=true" >> $GITHUB_OUTPUT
+              echo "Data file is sufficient (${size_mb}MB), skipping generation"
+            else
+              echo "skip_generation=false" >> $GITHUB_OUTPUT
+              echo "Data file too small (${size_mb}MB), will regenerate"
+            fi
+          else
+            echo "skip_generation=false" >> $GITHUB_OUTPUT
+            echo "No data file found, will generate"
+          fi
+
       - name: Generate simulated data
+        if: steps.check_data.outputs.skip_generation != 'true'
         run: python3 run_all_simulators.py 2048
         working-directory: src
         timeout-minutes: 25
