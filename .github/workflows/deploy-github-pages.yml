@@ -28,20 +28,23 @@ jobs:
           python-version: '3.11'
 
       - name: Generate simulated data
-        run: |
-          cd src
-          python3 run_all_simulators.py 2048
-        timeout-minutes: 20
+        run: python3 run_all_simulators.py 2048
+        working-directory: src
+        timeout-minutes: 25
 
       - name: Run all analyzers
+        run: python3 run_all_analyzers.py
+        working-directory: src
+        timeout-minutes: 20
+
+      - name: Copy reports to root directory
         run: |
-          cd src
-          python3 run_all_analyzers.py
-        timeout-minutes: 15
+          mkdir -p reports/html
+          cp -r src/reports/html/* reports/html/
 
       - name: Generate static index page
-        run: |
-          python3 -c "import sys; sys.path.insert(0, 'viewer'); from serve import StatusViewerServer; StatusViewerServer(report_dir='reports/html').create_status_page('reports/html/index.html', static_mode=True)"
+        run: python3 -c "import sys; sys.path.insert(0, 'viewer'); from serve import StatusViewerServer; StatusViewerServer(report_dir='reports/html').create_status_page('reports/html/index.html', static_mode=True)"
+        timeout-minutes: 5
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
