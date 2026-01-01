@@ -1,7 +1,7 @@
 """AI Traffic Simulator - Generate realistic AI API call patterns."""
 
-from .core import TrafficSimulator
+from .core import AICallSimulator
 
 __all__ = [
-    'TrafficSimulator',
+    'AICallSimulator',
 ]
