@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Revenium FinOps Showcase - Status Viewer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        .content {
+            padding: 40px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .progress-container {
+            background: #f5f5f5;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .progress-bar-container {
+            background: #e0e0e0;
+            height: 40px;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-top: 5px;
+        }
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .report-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .report-card.available {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        .report-card.unavailable {
+            border-color: #ff9800;
+            background: #fff8f0;
+            opacity: 0.7;
+        }
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+        .status-badge.complete {
+            background: #4CAF50;
+        }
+        .status-badge.pending {
+            background: #ff9800;
+        }
+        .status-badge.reprocessing {
+            background: #2196f3;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .report-card h3 {
+            margin-bottom: 10px;
+            color: #1a1a1a;
+            padding-right: 80px;
+        }
+        .report-card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .run-button, .view-button {
+            display: inline-block;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .run-button {
+            background: #9C27B0;
+            flex: 0 0 auto;
+        }
+        .run-button:hover {
+            background: #7B1FA2;
+        }
+        .run-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .view-button {
+            background: #2196f3;
+            flex: 1;
+        }
+        .view-button:hover {
+            background: #1976d2;
+        }
+        .view-button.disabled {
+            background: #ccc;
+            pointer-events: none;
+        }
+        .auto-refresh {
+            text-align: center;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-top: 20px;
+            color: #666;
+        }
+        .workflow {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+            margin-bottom: 30px;
+        }
+        .workflow h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        .workflow ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        /* Admin Panel - macOS Light Mode Style */
+        .admin-panel {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+        .admin-section {
+            margin-bottom: 30px;
+        }
+        .admin-section:last-child {
+            margin-bottom: 0;
+        }
+        .admin-section h3 {
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .admin-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            flex: 1;
+            min-width: 300px;
+        }
+        .control-group label {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .input-group input[type="text"] {
+            flex: 1;
+            background: #ffffff;
+            border: 1px solid #d0d0d0;
+            color: #1a1a1a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .input-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .input-group input[type="text"]::placeholder {
+            color: #999;
+        }
+        .csv-select {
+            flex: 1;
+            background: #ffffff;
+            border: 1px solid #d0d0d0;
+            color: #1a1a1a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .csv-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .csv-select option {
+            background: #ffffff;
+            color: #1a1a1a;
+            padding: 8px;
+        }
+        .csv-info {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+        }
+        .csv-info.current {
+            color: #28a745;
+            font-weight: 600;
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            border: 1px solid #d0d0d0;
+            color: #1a1a1a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background: #e8e8e8;
+            border-color: #667eea;
+        }
+        .btn-secondary:active {
+            transform: scale(0.95);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-primary:disabled {
+            background: #444;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-action {
+            flex: 1;
+            min-width: 200px;
+            background: #ffffff;
+            border: 2px solid #d0d0d0;
+            color: #1a1a1a;
+            padding: 16px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-action:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        .btn-action:active {
+            transform: translateY(0);
+        }
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-icon {
+            font-size: 14px;
+        }
+        .status-message {
+            margin-top: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
+        .status-message.success {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            display: block;
+        }
+        .status-message.error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            display: block;
+        }
+        .status-message.info {
+            background: rgba(0, 123, 255, 0.1);
+            color: #007bff;
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            display: block;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #ffffff;
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-card .stat-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .stat-card .stat-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Revenium FinOps Showcase</h1>
+            <p>AI Cost Management & Usage-Based Revenue Analysis</p>
+        </div>
+
+        <div class="content">
+            <div class="workflow">
+                <h3>Workflow</h3>
+                <ol>
+                    <li><strong>Run simulator:</strong> <code>cd ../src && python3 run_all_simulators.py</code></li>
+                    <li><strong>Run analyzers:</strong> <code>cd ../src && python3 run_all_analyzers.py</code></li>
+                    <li><strong>View reports:</strong> Refresh browser to see updated status</li>
+                </ol>
+            </div>
+
+            <div class="section">
+                <h2>Admin Panel</h2>
+                <div class="admin-panel">
+                    <div class="admin-section">
+                        <h3>Data Management</h3>
+                        <div class="admin-controls">
+                            <div class="control-group">
+                                <label>Load CSV File</label>
+                                <div class="input-group">
+                                    <select id="csv-selector" class="csv-select">
+                                        <option value="">Loading CSV files...</option>
+                                    </select>
+                                    <button onclick="refreshCSVList()" class="btn-secondary" title="Refresh CSV list">⟳</button>
+                                    <button onclick="loadSelectedCSV()" class="btn-primary">Load CSV</button>
+                                </div>
+                                <div id="csv-info" class="csv-info"></div>
+                                <div id="csv-loader-message" class="status-message"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>Pipeline Actions</h3>
+                        <div class="admin-controls">
+                            <button onclick="runSimulators()" id="run-simulators-btn" class="btn-action">
+                                <span class="btn-icon">▶</span>
+                                <span class="btn-label">Run Simulators</span>
+                            </button>
+                            <button onclick="runAllAnalyzers()" id="run-all-analyzers-btn" class="btn-action">
+                                <span class="btn-icon">▶</span>
+                                <span class="btn-label">Run All Analyzers</span>
+                            </button>
+                        </div>
+                        <div id="pipeline-status" class="status-message"></div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>CSV Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">CSV Size</div>
+                                <div class="stat-value" id="csv-size">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Target Size</div>
+                                <div class="stat-value" id="csv-target">2048 MB</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Progress</div>
+                                <div class="stat-value" id="csv-progress">0%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Total Calls</div>
+                                <div class="stat-value" id="csv-lines">-</div>
+                            </div>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="progress-bar" style="width: 0%">
+                                <span id="progress-text">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Analysis Reports</h2>
+                <div class="report-grid" id="report-grid">
+                    <!-- Reports will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="auto-refresh">
+                Last updated: <span id="last-update">-</span> |
+                Auto-refresh every 1 second
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Map filenames to analyzer IDs
+        const ANALYZER_IDS = {
+            'understanding.html': 'understanding',
+            'performance.html': 'performance',
+            'realtime.html': 'realtime',
+            'optimization.html': 'optimization',
+            'alignment.html': 'alignment',
+            'profitability.html': 'profitability',
+            'pricing.html': 'pricing',
+            'features.html': 'features'
+        };
+
+        function formatSize(mb) {
+            if (mb < 1) {
+                return (mb * 1024).toFixed(1) + ' KB';
+            } else if (mb >= 1024) {
+                return (mb / 1024).toFixed(2) + ' GB';
+            }
+            return mb.toFixed(2) + ' MB';
+        }
+
+        function formatNumber(num) {
+            return num.toLocaleString();
+        }
+
+        function populateCSVList() {
+            const selector = document.getElementById('csv-selector');
+            const infoDiv = document.getElementById('csv-info');
+
+            fetch('/api/list_csv_files?_=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.files.length > 0) {
+                        // Clear existing options
+                        selector.innerHTML = '';
+
+                        // Add CSV files as options
+                        data.files.forEach(file => {
+                            const option = document.createElement('option');
+                            option.value = file.filename;
+                            option.textContent = `${file.filename} (${file.size_mb} MB)`;
+                            if (file.is_current) {
+                                option.selected = true;
+                            }
+                            selector.appendChild(option);
+                        });
+
+                        // Update info with selected file details
+                        updateCSVInfo();
+                    } else if (data.success && data.files.length === 0) {
+                        selector.innerHTML = '<option value="">No CSV files found</option>';
+                        infoDiv.textContent = '';
+                    } else {
+                        selector.innerHTML = '<option value="">Error loading CSV files</option>';
+                        infoDiv.textContent = data.error || 'Unknown error';
+                        infoDiv.className = 'csv-info';
+                    }
+                })
+                .catch(e => {
+                    console.error('Error listing CSV files:', e);
+                    selector.innerHTML = '<option value="">Failed to load CSV files</option>';
+                    infoDiv.textContent = e.message;
+                    infoDiv.className = 'csv-info';
+                });
+        }
+
+        function updateCSVInfo() {
+            const selector = document.getElementById('csv-selector');
+            const infoDiv = document.getElementById('csv-info');
+            const selectedFilename = selector.value;
+
+            if (!selectedFilename) {
+                infoDiv.textContent = '';
+                return;
+            }
+
+            // Fetch file details
+            fetch('/api/list_csv_files?_=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const file = data.files.find(f => f.filename === selectedFilename);
+                        if (file) {
+                            infoDiv.textContent = `Modified: ${file.modified_display} | Size: ${file.size_mb} MB`;
+                            infoDiv.className = file.is_current ? 'csv-info current' : 'csv-info';
+                        }
+                    }
+                })
+                .catch(e => {
+                    console.error('Error getting CSV info:', e);
+                });
+        }
+
+        function refreshCSVList() {
+            populateCSVList();
+        }
+
+        function loadSelectedCSV() {
+            const selector = document.getElementById('csv-selector');
+            const messageDiv = document.getElementById('csv-loader-message');
+            const csvFilename = selector.value;
+
+            if (!csvFilename) {
+                messageDiv.className = 'status-message error';
+                messageDiv.textContent = 'Please select a CSV file';
+                return;
+            }
+
+            // Reset message
+            messageDiv.className = 'status-message info';
+            messageDiv.textContent = 'Loading...';
+
+            // Send POST request to load CSV
+            fetch('/api/load_csv?csv_filename=' + encodeURIComponent(csvFilename), {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.className = 'status-message success';
+                    messageDiv.textContent = data.message;
+                    // Refresh CSV list to update current file indicator
+                    populateCSVList();
+                    // Trigger immediate status update
+                    updateStatus();
+                } else {
+                    messageDiv.className = 'status-message error';
+                    messageDiv.textContent = 'Error: ' + data.error;
+                }
+            })
+            .catch(e => {
+                console.error('Error loading CSV:', e);
+                messageDiv.className = 'status-message error';
+                messageDiv.textContent = 'Failed to load CSV: ' + e.message;
+            });
+        }
+
+        function runSimulators() {
+            const button = document.getElementById('run-simulators-btn');
+            const messageDiv = document.getElementById('pipeline-status');
+
+            button.disabled = true;
+            button.querySelector('.btn-label').textContent = 'Running...';
+            messageDiv.className = 'status-message info';
+            messageDiv.textContent = 'Starting simulators...';
+
+            fetch('/api/run_simulators', {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.className = 'status-message success';
+                    messageDiv.textContent = data.message;
+                    // Re-enable after a delay
+                    setTimeout(() => {
+                        button.disabled = false;
+                        button.querySelector('.btn-label').textContent = 'Run Simulators';
+                    }, 3000);
+                } else {
+                    messageDiv.className = 'status-message error';
+                    messageDiv.textContent = 'Error: ' + data.error;
+                    button.disabled = false;
+                    button.querySelector('.btn-label').textContent = 'Run Simulators';
+                }
+            })
+            .catch(e => {
+                console.error('Error running simulators:', e);
+                messageDiv.className = 'status-message error';
+                messageDiv.textContent = 'Failed to start simulators: ' + e.message;
+                button.disabled = false;
+                button.querySelector('.btn-label').textContent = 'Run Simulators';
+            });
+        }
+
+        function runAllAnalyzers() {
+            const button = document.getElementById('run-all-analyzers-btn');
+            const messageDiv = document.getElementById('pipeline-status');
+
+            button.disabled = true;
+            button.querySelector('.btn-label').textContent = 'Running...';
+            messageDiv.className = 'status-message info';
+            messageDiv.textContent = 'Starting all analyzers...';
+
+            fetch('/api/run_all_analyzers', {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.className = 'status-message success';
+                    messageDiv.textContent = data.message;
+                    // Re-enable after a delay
+                    setTimeout(() => {
+                        button.disabled = false;
+                        button.querySelector('.btn-label').textContent = 'Run All Analyzers';
+                    }, 3000);
+                } else {
+                    messageDiv.className = 'status-message error';
+                    messageDiv.textContent = 'Error: ' + data.error;
+                    button.disabled = false;
+                    button.querySelector('.btn-label').textContent = 'Run All Analyzers';
+                }
+            })
+            .catch(e => {
+                console.error('Error running analyzers:', e);
+                messageDiv.className = 'status-message error';
+                messageDiv.textContent = 'Failed to start analyzers: ' + e.message;
+                button.disabled = false;
+                button.querySelector('.btn-label').textContent = 'Run All Analyzers';
+            });
+        }
+
+        function runAnalyzer(analyzerId, button) {
+            // Disable the button
+            button.disabled = true;
+            button.textContent = 'Running...';
+
+            // Send POST request to run analyzer
+            fetch('/api/run_analyzer?analyzer_id=' + analyzerId, {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Analyzer started:', analyzerId);
+                } else {
+                    alert('Failed to start analyzer: ' + data.error);
+                    button.disabled = false;
+                    button.textContent = '⟳ Run';
+                }
+            })
+            .catch(e => {
+                console.error('Error starting analyzer:', e);
+                alert('Failed to start analyzer');
+                button.disabled = false;
+                button.textContent = '⟳ Run';
+            });
+        }
+
+        function updateStatus() {
+            fetch('/api/status?_=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    // Update CSV progress
+                    const csv = data.csv;
+                    document.getElementById('csv-size').textContent = formatSize(csv.size_mb);
+                    document.getElementById('csv-progress').textContent = csv.progress_pct.toFixed(1) + '%';
+                    document.getElementById('csv-lines').textContent = formatNumber(csv.line_count);
+
+                    const progressBar = document.getElementById('progress-bar');
+                    progressBar.style.width = csv.progress_pct + '%';
+                    document.getElementById('progress-text').textContent = csv.progress_pct.toFixed(1) + '%';
+
+                    // Update pipeline status based on simulator/analyzer progress
+                    const pipelineMessage = document.getElementById('pipeline-status');
+                    const simulatorBtn = document.getElementById('run-simulators-btn');
+                    const analyzerBtn = document.getElementById('run-all-analyzers-btn');
+
+                    // Handle simulator status
+                    if (data.simulator_status && data.simulator_status.status === 'running') {
+                        pipelineMessage.className = 'status-message info';
+                        pipelineMessage.textContent = data.simulator_status.message;
+                        simulatorBtn.disabled = true;
+                        simulatorBtn.querySelector('.btn-label').textContent = 'Running...';
+                    } else if (data.simulator_status && data.simulator_status.status === 'complete') {
+                        pipelineMessage.className = 'status-message success';
+                        pipelineMessage.textContent = data.simulator_status.message;
+                        simulatorBtn.disabled = false;
+                        simulatorBtn.querySelector('.btn-label').textContent = 'Run Simulators';
+                    } else if (data.simulator_status && data.simulator_status.status === 'error') {
+                        pipelineMessage.className = 'status-message error';
+                        pipelineMessage.textContent = data.simulator_status.message;
+                        simulatorBtn.disabled = false;
+                        simulatorBtn.querySelector('.btn-label').textContent = 'Run Simulators';
+                    }
+
+                    // Handle all analyzers status
+                    if (data.all_analyzers_status && data.all_analyzers_status.status === 'running') {
+                        pipelineMessage.className = 'status-message info';
+                        const progress = `${data.all_analyzers_status.completed}/${data.all_analyzers_status.total}`;
+                        const current = data.all_analyzers_status.current ? ` - ${data.all_analyzers_status.current}` : '';
+                        pipelineMessage.textContent = `Running analyzers (${progress})${current}`;
+                        analyzerBtn.disabled = true;
+                        analyzerBtn.querySelector('.btn-label').textContent = 'Running...';
+                    } else if (data.all_analyzers_status && data.all_analyzers_status.status === 'complete') {
+                        pipelineMessage.className = 'status-message success';
+                        pipelineMessage.textContent = data.all_analyzers_status.message;
+                        analyzerBtn.disabled = false;
+                        analyzerBtn.querySelector('.btn-label').textContent = 'Run All Analyzers';
+                    } else if (data.all_analyzers_status && data.all_analyzers_status.status === 'error') {
+                        pipelineMessage.className = 'status-message error';
+                        pipelineMessage.textContent = data.all_analyzers_status.message;
+                        analyzerBtn.disabled = false;
+                        analyzerBtn.querySelector('.btn-label').textContent = 'Run All Analyzers';
+                    }
+
+                    // Update report grid
+                    const reportGrid = document.getElementById('report-grid');
+                    reportGrid.innerHTML = '';
+
+                    const analyzerStatus = data.analyzer_status || {};
+
+                    for (const [filename, info] of Object.entries(data.reports)) {
+                        const analyzerId = ANALYZER_IDS[filename];
+                        const status = analyzerStatus[analyzerId];
+                        const isReprocessing = status && status.status === 'reprocessing';
+
+                        const card = document.createElement('div');
+                        card.className = 'report-card ' + (info.exists ? 'available' : 'unavailable');
+
+                        let statusBadge;
+                        if (isReprocessing) {
+                            statusBadge = '<div class="status-badge reprocessing">⟳ Reprocessing</div>';
+                        } else if (info.exists) {
+                            statusBadge = '<div class="status-badge complete">✓ Complete</div>';
+                        } else {
+                            statusBadge = '<div class="status-badge pending">⋯ Pending</div>';
+                        }
+
+                        const viewButton = info.exists ?
+                            `<a href="${filename}" class="view-button">View Report →</a>` :
+                            '<span class="view-button disabled">Not Generated</span>';
+
+                        const runButton = `<button class="run-button" onclick="runAnalyzer('${analyzerId}', this)" ${isReprocessing ? 'disabled' : ''}>⟳ Run</button>`;
+
+                        card.innerHTML = `
+                            ${statusBadge}
+                            <h3>${info.name}</h3>
+                            <p>${info.exists ? 'Report available (' + info.size_kb.toFixed(1) + ' KB)' : 'Run analyzers to generate'}</p>
+                            <div class="button-group">
+                                ${runButton}
+                                ${viewButton}
+                            </div>
+                        `;
+
+                        reportGrid.appendChild(card);
+                    }
+
+                    // Update timestamp
+                    document.getElementById('last-update').textContent =
+                        new Date(data.timestamp).toLocaleTimeString();
+                })
+                .catch(e => {
+                    console.log('Status update failed:', e);
+                });
+        }
+
+        // Add change listener to CSV selector
+        document.getElementById('csv-selector').addEventListener('change', updateCSVInfo);
+
+        // Initialize CSV dropdown
+        populateCSVList();
+
+        // Update immediately and then every 1 second
+        updateStatus();
+        setInterval(updateStatus, 1000);
+    </script>
+</body>
+</html>

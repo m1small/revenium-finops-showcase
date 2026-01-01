@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Churn Risk & Growth Signals</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white;
+                      padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #1a1a1a; margin-top: 0; font-size: 32px; }
+        h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 40px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                        gap: 20px; margin: 30px 0; }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .metric-label { font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: bold; margin-top: 8px; }
+        .metric-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th { background: #f8f9fa; padding: 14px; text-align: left; font-weight: 600;
+              border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase;
+              color: #666; letter-spacing: 0.5px; }
+        td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f8f9fa; }
+        .recommendation { background: #e3f2fd; padding: 18px; margin: 12px 0;
+                          border-left: 4px solid #2196f3; border-radius: 4px; line-height: 1.6; }
+        .timestamp { color: #999; font-size: 14px; margin-top: 40px; text-align: center;
+                      padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .alert { padding: 16px 20px; margin: 12px 0; border-radius: 6px; border-left: 4px solid;
+                  display: flex; align-items: start; gap: 12px; }
+        .alert-critical { background: #fef1f1; border-color: #d32f2f; }
+        .alert-warning { background: #fff8e1; border-color: #f57c00; }
+        .alert-info { background: #e3f2fd; border-color: #1976d2; }
+        .alert-success { background: #f1f8f4; border-color: #388e3c; }
+        .alert-icon { font-size: 24px; line-height: 1; }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .alert-description { opacity: 0.9; line-height: 1.5; }
+        .chart-container { position: relative; height: 350px; margin: 30px 0; }
+    
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <h1>📈 Churn Risk & Growth Signals</h1>
+        <p style="color: #666; font-size: 16px; margin-top: -10px;">
+            Customer engagement analysis, expansion opportunities, and retention insights
+        </p>
+
+        <h2>Summary Metrics</h2>
+        
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Customers</div>
+                <div class="metric-value">500</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="metric-label">At-Risk Customers</div>
+                <div class="metric-value">0</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #d32f2f 0%, #f57c00 100%);">
+                <div class="metric-label">Revenue at Risk</div>
+                <div class="metric-value">$0.00</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="metric-label">Expansion Opps</div>
+                <div class="metric-value">500</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="metric-label">Expansion Revenue</div>
+                <div class="metric-value">$51,100.00</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="metric-label">Avg Features/Customer</div>
+                <div class="metric-value">5.0</div>
+            </div>
+        </div>
+    
+
+        <h2>Usage Velocity Trends</h2>
+        <div class="chart-container">
+            <canvas id="velocityChart"></canvas>
+        </div>
+        <p style="color: #666; margin-top: 20px;">
+            Customer usage trends over the analysis period: 7 days.
+            Growing customers show &gt;20% increase, declining show &gt;20% decrease.
+        </p>
+
+        <h2>Churn Risk Customers</h2>
+        <div class="alert alert-critical" style="margin-bottom: 20px;">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <div class="alert-title">Action Required</div>
+                <div class="alert-description">
+                    0 customers at churn risk representing $0.00 in monthly revenue.
+                    Immediate customer success intervention recommended.
+                </div>
+            </div>
+        </div>
+        <p style='color: #666;'>No customers at significant churn risk.</p>
+
+        <h2>Expansion Opportunities</h2>
+        <div class="alert alert-success" style="margin-bottom: 20px;">
+            <div class="alert-icon">💰</div>
+            <div class="alert-content">
+                <div class="alert-title">Revenue Growth Potential</div>
+                <div class="alert-description">
+                    500 customers ready for tier upgrades with $51,100.00 in potential monthly expansion revenue.
+                </div>
+            </div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer ID</th>
+                    <th>Current Tier</th>
+                    <th style="text-align: right;">Expansion Score</th>
+                    <th style="text-align: right;">Growth Rate</th>
+                    <th style="text-align: right;">Total Calls</th>
+                    <th style="text-align: right;">Current Revenue</th>
+                    <th style="text-align: right;">Expansion Revenue</th>
+                    <th>Growth Signals</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>cust_0066</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">196%</td>
+                <td style="text-align: right;">25,161</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0358</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">222%</td>
+                <td style="text-align: right;">26,830</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0059</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">234%</td>
+                <td style="text-align: right;">22,806</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0053</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">241%</td>
+                <td style="text-align: right;">25,017</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0391</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">242%</td>
+                <td style="text-align: right;">27,504</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0122</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">246%</td>
+                <td style="text-align: right;">22,807</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0493</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">259%</td>
+                <td style="text-align: right;">23,499</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0227</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">267%</td>
+                <td style="text-align: right;">21,979</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0048</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">270%</td>
+                <td style="text-align: right;">24,747</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0210</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">278%</td>
+                <td style="text-align: right;">21,158</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0372</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">284%</td>
+                <td style="text-align: right;">26,820</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0354</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">294%</td>
+                <td style="text-align: right;">21,849</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0099</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">294%</td>
+                <td style="text-align: right;">23,909</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0411</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">294%</td>
+                <td style="text-align: right;">24,616</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0031</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">297%</td>
+                <td style="text-align: right;">21,972</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0381</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">300%</td>
+                <td style="text-align: right;">24,194</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0323</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">302%</td>
+                <td style="text-align: right;">28,476</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0349</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">303%</td>
+                <td style="text-align: right;">25,020</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0460</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">324%</td>
+                <td style="text-align: right;">26,831</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0361</td>
+                <td>Starter</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">105</td>
+                <td style="text-align: right; color: #43e97b;">326%</td>
+                <td style="text-align: right;">24,056</td>
+                <td style="text-align: right;">$29.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$70.00</td>
+                <td style="font-size: 12px;">strong growth, starter power user, heavy user low tier</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Customer Engagement Scores</h2>
+        <div class="chart-container">
+            <canvas id="engagementChart"></canvas>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer ID</th>
+                    <th style="text-align: right;">Engagement Score</th>
+                    <th>Level</th>
+                    <th style="text-align: right;">Total Calls</th>
+                    <th style="text-align: right;">Features Used</th>
+                    <th style="text-align: right;">Total Spend</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>cust_0049</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">23,082</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$261.54</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0026</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">24,882</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$676.10</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0035</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">27,911</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$185.95</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0128</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">25,298</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$384.86</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0399</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">24,608</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$156.60</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0226</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">25,853</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$137.84</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0269</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">24,741</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$194.96</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0195</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">25,430</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$214.37</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0170</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">25,302</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$200.51</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0100</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">25,296</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$124.68</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0093</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">25,292</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$213.30</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0439</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">25,985</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$270.84</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0340</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">31,527</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$148.88</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0444</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">25,565</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$268.95</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0343</td>
+                <td style="text-align: right;">100.0</td>
+                <td style="color: #43e97b; font-weight: bold;">HIGH</td>
+                <td style="text-align: right;">25,717</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$157.75</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #333;">Feature Adoption Metrics</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div>
+                    <strong>Single-Feature Customers:</strong><br>
+                    <span style="font-size: 24px; color: #667eea;">0</span>
+                    <span style="color: #666; font-size: 13px;"> (0.0%)</span>
+                </div>
+                <div>
+                    <strong>Multi-Feature Customers:</strong><br>
+                    <span style="font-size: 24px; color: #43e97b;">500</span>
+                    <span style="color: #666; font-size: 13px;"> (100.0%)</span>
+                </div>
+                <div>
+                    <strong>Avg Features per Customer:</strong><br>
+                    <span style="font-size: 24px; color: #4facfe;">5.00</span>
+                </div>
+            </div>
+        </div>
+    
+
+        <h2>Tier Mismatch Analysis</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customers on the wrong tier for their usage patterns - both upgrade and downgrade opportunities.
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer ID</th>
+                    <th>Current Tier</th>
+                    <th>Mismatch Type</th>
+                    <th style="text-align: right;">Total Calls</th>
+                    <th style="text-align: right;">Total Cost</th>
+                    <th style="text-align: right;">Severity</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>cust_0049</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">23,082</td>
+                <td style="text-align: right;">$261.54</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0399</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">24,608</td>
+                <td style="text-align: right;">$156.60</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0170</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">25,302</td>
+                <td style="text-align: right;">$200.51</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0093</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">25,292</td>
+                <td style="text-align: right;">$213.30</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0444</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">25,565</td>
+                <td style="text-align: right;">$268.95</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0343</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">25,717</td>
+                <td style="text-align: right;">$157.75</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0257</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">26,683</td>
+                <td style="text-align: right;">$160.98</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0175</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">23,513</td>
+                <td style="text-align: right;">$162.40</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0066</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">25,161</td>
+                <td style="text-align: right;">$165.80</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0460</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">26,831</td>
+                <td style="text-align: right;">$263.49</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0390</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">24,182</td>
+                <td style="text-align: right;">$145.16</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0360</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">28,746</td>
+                <td style="text-align: right;">$467.21</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0310</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">29,175</td>
+                <td style="text-align: right;">$185.90</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0273</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">22,526</td>
+                <td style="text-align: right;">$101.88</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0454</td>
+                <td>Starter</td>
+                <td style="color: #43e97b; font-weight: bold;">Undersubscribed</td>
+                <td style="text-align: right;">23,783</td>
+                <td style="text-align: right;">$172.11</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Cohort Analysis</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customer segmentation by subscription tier and usage archetype.
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Tier</th>
+                    <th>Archetype</th>
+                    <th style="text-align: right;">Customers</th>
+                    <th style="text-align: right;">Total Calls</th>
+                    <th style="text-align: right;">Avg Calls/Customer</th>
+                    <th style="text-align: right;">Total Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>Starter</td>
+                <td>Light</td>
+                <td style="text-align: right;">470</td>
+                <td style="text-align: right;">4,145,995</td>
+                <td style="text-align: right;">8821</td>
+                <td style="text-align: right;">$17,179.63</td>
+            </tr>
+        
+            <tr>
+                <td>Pro</td>
+                <td>Light</td>
+                <td style="text-align: right;">450</td>
+                <td style="text-align: right;">3,315,383</td>
+                <td style="text-align: right;">7368</td>
+                <td style="text-align: right;">$13,743.02</td>
+            </tr>
+        
+            <tr>
+                <td>Enterprise</td>
+                <td>Light</td>
+                <td style="text-align: right;">348</td>
+                <td style="text-align: right;">1,248,674</td>
+                <td style="text-align: right;">3588</td>
+                <td style="text-align: right;">$5,202.62</td>
+            </tr>
+        
+            <tr>
+                <td>Starter</td>
+                <td>Power</td>
+                <td style="text-align: right;">328</td>
+                <td style="text-align: right;">1,229,149</td>
+                <td style="text-align: right;">3747</td>
+                <td style="text-align: right;">$15,011.67</td>
+            </tr>
+        
+            <tr>
+                <td>Pro</td>
+                <td>Power</td>
+                <td style="text-align: right;">250</td>
+                <td style="text-align: right;">915,778</td>
+                <td style="text-align: right;">3663</td>
+                <td style="text-align: right;">$11,415.85</td>
+            </tr>
+        
+            <tr>
+                <td>Starter</td>
+                <td>Heavy</td>
+                <td style="text-align: right;">204</td>
+                <td style="text-align: right;">609,648</td>
+                <td style="text-align: right;">2988</td>
+                <td style="text-align: right;">$18,769.76</td>
+            </tr>
+        
+            <tr>
+                <td>Pro</td>
+                <td>Heavy</td>
+                <td style="text-align: right;">143</td>
+                <td style="text-align: right;">491,757</td>
+                <td style="text-align: right;">3439</td>
+                <td style="text-align: right;">$14,951.19</td>
+            </tr>
+        
+            <tr>
+                <td>Enterprise</td>
+                <td>Power</td>
+                <td style="text-align: right;">128</td>
+                <td style="text-align: right;">410,079</td>
+                <td style="text-align: right;">3204</td>
+                <td style="text-align: right;">$5,077.79</td>
+            </tr>
+        
+            <tr>
+                <td>Enterprise</td>
+                <td>Heavy</td>
+                <td style="text-align: right;">75</td>
+                <td style="text-align: right;">266,075</td>
+                <td style="text-align: right;">3548</td>
+                <td style="text-align: right;">$7,753.79</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Recommendations</h2>
+        <div class="recommendation">1. 💰 OPPORTUNITY: 418 customers ready for tier upgrade (500 total). Potential expansion revenue: $51,100/month. Prioritize accounts showing strong growth.</div>
+<div class="recommendation">2. 📈 418 customers are undersubscribed (heavy usage on low tier). These are ideal expansion candidates—reach out before competitors do.</div>
+
+    
+
+        <div class="timestamp">
+            Generated: 2025-12-26 23:02:58 |
+            <a href="index.html" style="color: #2196f3; text-decoration: none;">View All Reports</a>
+        </div>
+    </div>
+
+    
+    <script>
+        // Usage velocity distribution
+        new Chart(document.getElementById('velocityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Growing', 'Stable', 'Declining'],
+                datasets: [{
+                    data: [500, 0, 0],
+                    backgroundColor: [
+                        'rgba(67, 233, 123, 0.8)',
+                        'rgba(79, 172, 254, 0.8)',
+                        'rgba(211, 47, 47, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }
+                }
+            }
+        });
+
+        // Engagement level distribution
+        var engagementHigh = 500;
+        var engagementMedium = 0;
+        var engagementLow = 0;
+
+        new Chart(document.getElementById('engagementChart'), {
+            type: 'bar',
+            data: {
+                labels: ['High', 'Medium', 'Low'],
+                datasets: [{
+                    label: 'Customers by Engagement Level',
+                    data: [engagementHigh, engagementMedium, engagementLow],
+                    backgroundColor: [
+                        'rgba(67, 233, 123, 0.8)',
+                        'rgba(240, 147, 251, 0.8)',
+                        'rgba(211, 47, 47, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+    
+</body>
+</html>

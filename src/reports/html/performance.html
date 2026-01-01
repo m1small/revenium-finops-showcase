@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Performance Analysis - FinOps Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white;
+                      padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #1a1a1a; margin-top: 0; font-size: 28px; font-weight: 600; }
+        h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 40px; font-size: 20px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                        gap: 20px; margin: 30px 0; }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .metric-label { font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: bold; margin-top: 8px; }
+        .metric-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .metric-card:nth-child(5) { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .metric-card:nth-child(6) { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th { background: #f8f9fa; padding: 14px; text-align: left; font-weight: 600;
+              border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase;
+              color: #666; letter-spacing: 0.5px; }
+        td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f8f9fa; }
+        .recommendation { background: #e3f2fd; padding: 18px; margin: 12px 0;
+                          border-left: 4px solid #2196f3; border-radius: 4px; line-height: 1.6; }
+        .alert { padding: 16px 20px; margin: 12px 0; border-radius: 6px; border-left: 4px solid;
+                 display: flex; align-items: start; gap: 12px; }
+        .alert-critical { background: #fef1f1; border-color: #d32f2f; }
+        .alert-warning { background: #fff8e1; border-color: #f57c00; }
+        .alert-info { background: #e3f2fd; border-color: #1976d2; }
+        .alert-success { background: #f1f8f4; border-color: #388e3c; }
+        .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .alert-description { font-size: 14px; line-height: 1.5; color: #555; }
+        .timestamp { color: #999; font-size: 14px; margin-top: 40px; text-align: center;
+                      padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .chart-container { position: relative; height: 350px; margin: 30px 0; }
+        .info-card { background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;
+                     border-left: 4px solid #ff9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Performance Analysis</h1>
+        <p style="color: #666; font-size: 16px;">Model efficiency, latency percentiles, and SLA compliance monitoring</p>
+
+        <h2>Summary Metrics</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Calls</div>
+                <div class="metric-value">12,632,538</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Avg Latency</div>
+                <div class="metric-value">1129ms</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">P95 Latency</div>
+                <div class="metric-value">3102ms</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">P99 Latency</div>
+                <div class="metric-value">4865ms</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Avg Tokens/Second</div>
+                <div class="metric-value">218.1</div>
+            </div>
+        </div>
+
+        <h2>Model Efficiency Rankings</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Provider</th>
+                    <th>Model</th>
+                    <th style="text-align: right;">Calls</th>
+                    <th style="text-align: right;">P50 Latency</th>
+                    <th style="text-align: right;">P95 Latency</th>
+                    <th style="text-align: right;">Tokens/Sec</th>
+                    <th style="text-align: right;">Cost/1K Tokens</th>
+                    <th style="text-align: right;">Efficiency Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td>Google</td>
+            <td><strong>gemini-1.5-flash</strong></td>
+            <td style="text-align: right;">663,022</td>
+            <td style="text-align: right;">816ms</td>
+            <td style="text-align: right;">3162ms</td>
+            <td style="text-align: right;">219.0</td>
+            <td style="text-align: right;">$0.000</td>
+            <td style="text-align: right;">1283064.14</td>
+        </tr>
+        
+        <tr>
+            <td>Openai</td>
+            <td><strong>gpt-4o-mini</strong></td>
+            <td style="text-align: right;">992,354</td>
+            <td style="text-align: right;">816ms</td>
+            <td style="text-align: right;">3121ms</td>
+            <td style="text-align: right;">216.8</td>
+            <td style="text-align: right;">$0.000</td>
+            <td style="text-align: right;">633981.06</td>
+        </tr>
+        
+        <tr>
+            <td>Azure</td>
+            <td><strong>azure-gpt-35-turbo</strong></td>
+            <td style="text-align: right;">252,488</td>
+            <td style="text-align: right;">818ms</td>
+            <td style="text-align: right;">3404ms</td>
+            <td style="text-align: right;">216.6</td>
+            <td style="text-align: right;">$0.001</td>
+            <td style="text-align: right;">234546.71</td>
+        </tr>
+        
+        <tr>
+            <td>Openai</td>
+            <td><strong>gpt-3.5-turbo</strong></td>
+            <td style="text-align: right;">885,044</td>
+            <td style="text-align: right;">816ms</td>
+            <td style="text-align: right;">3150ms</td>
+            <td style="text-align: right;">217.5</td>
+            <td style="text-align: right;">$0.001</td>
+            <td style="text-align: right;">234443.35</td>
+        </tr>
+        
+        <tr>
+            <td>Cohere</td>
+            <td><strong>command-r</strong></td>
+            <td style="text-align: right;">57,204</td>
+            <td style="text-align: right;">782ms</td>
+            <td style="text-align: right;">2334ms</td>
+            <td style="text-align: right;">213.0</td>
+            <td style="text-align: right;">$0.001</td>
+            <td style="text-align: right;">230121.07</td>
+        </tr>
+        
+        <tr>
+            <td>Anthropic</td>
+            <td><strong>claude-haiku-4</strong></td>
+            <td style="text-align: right;">828,430</td>
+            <td style="text-align: right;">818ms</td>
+            <td style="text-align: right;">2919ms</td>
+            <td style="text-align: right;">219.1</td>
+            <td style="text-align: right;">$0.002</td>
+            <td style="text-align: right;">101479.20</td>
+        </tr>
+        
+        <tr>
+            <td>Bedrock</td>
+            <td><strong>bedrock-claude-haiku</strong></td>
+            <td style="text-align: right;">361,972</td>
+            <td style="text-align: right;">835ms</td>
+            <td style="text-align: right;">3040ms</td>
+            <td style="text-align: right;">218.9</td>
+            <td style="text-align: right;">$0.002</td>
+            <td style="text-align: right;">101392.01</td>
+        </tr>
+        
+        <tr>
+            <td>Google</td>
+            <td><strong>gemini-pro</strong></td>
+            <td style="text-align: right;">553,049</td>
+            <td style="text-align: right;">814ms</td>
+            <td style="text-align: right;">3027ms</td>
+            <td style="text-align: right;">219.0</td>
+            <td style="text-align: right;">$0.002</td>
+            <td style="text-align: right;">94539.80</td>
+        </tr>
+        
+        <tr>
+            <td>Google</td>
+            <td><strong>gemini-1.5-pro</strong></td>
+            <td style="text-align: right;">714,404</td>
+            <td style="text-align: right;">829ms</td>
+            <td style="text-align: right;">3096ms</td>
+            <td style="text-align: right;">220.8</td>
+            <td style="text-align: right;">$0.003</td>
+            <td style="text-align: right;">77423.15</td>
+        </tr>
+        
+        <tr>
+            <td>Mistral</td>
+            <td><strong>mistral-medium</strong></td>
+            <td style="text-align: right;">114,556</td>
+            <td style="text-align: right;">844ms</td>
+            <td style="text-align: right;">3534ms</td>
+            <td style="text-align: right;">216.7</td>
+            <td style="text-align: right;">$0.005</td>
+            <td style="text-align: right;">42972.45</td>
+        </tr>
+        
+        <tr>
+            <td>Mistral</td>
+            <td><strong>mistral-large</strong></td>
+            <td style="text-align: right;">108,086</td>
+            <td style="text-align: right;">795ms</td>
+            <td style="text-align: right;">2852ms</td>
+            <td style="text-align: right;">215.8</td>
+            <td style="text-align: right;">$0.007</td>
+            <td style="text-align: right;">29002.23</td>
+        </tr>
+        
+        <tr>
+            <td>Cohere</td>
+            <td><strong>command-r-plus</strong></td>
+            <td style="text-align: right;">56,256</td>
+            <td style="text-align: right;">837ms</td>
+            <td style="text-align: right;">3116ms</td>
+            <td style="text-align: right;">224.3</td>
+            <td style="text-align: right;">$0.008</td>
+            <td style="text-align: right;">27716.41</td>
+        </tr>
+        
+        <tr>
+            <td>Anthropic</td>
+            <td><strong>claude-3.5-sonnet</strong></td>
+            <td style="text-align: right;">894,554</td>
+            <td style="text-align: right;">819ms</td>
+            <td style="text-align: right;">3052ms</td>
+            <td style="text-align: right;">217.6</td>
+            <td style="text-align: right;">$0.008</td>
+            <td style="text-align: right;">26957.53</td>
+        </tr>
+        
+        <tr>
+            <td>Anthropic</td>
+            <td><strong>claude-sonnet-4</strong></td>
+            <td style="text-align: right;">897,240</td>
+            <td style="text-align: right;">815ms</td>
+            <td style="text-align: right;">3127ms</td>
+            <td style="text-align: right;">218.0</td>
+            <td style="text-align: right;">$0.008</td>
+            <td style="text-align: right;">26852.59</td>
+        </tr>
+        
+        <tr>
+            <td>Bedrock</td>
+            <td><strong>bedrock-claude-sonnet</strong></td>
+            <td style="text-align: right;">372,738</td>
+            <td style="text-align: right;">813ms</td>
+            <td style="text-align: right;">2967ms</td>
+            <td style="text-align: right;">215.6</td>
+            <td style="text-align: right;">$0.008</td>
+            <td style="text-align: right;">26746.31</td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>SLA Compliance (2000ms threshold)</h2>
+        <div class="info-card">
+            <p style="margin: 0 0 10px 0;"><strong>Overall Compliance:</strong> 88.3%</p>
+            <p style="margin: 0 0 10px 0;"><strong>Within SLA:</strong> 11,156,997 / 12,632,538 calls</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Provider</th>
+                    <th>Model</th>
+                    <th style="text-align: right;">Total Calls</th>
+                    <th style="text-align: right;">Compliance %</th>
+                    <th style="text-align: right;">Within SLA</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td>Cohere</td>
+            <td><strong>command-r</strong></td>
+            <td style="text-align: right;">57,204</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">91.1%</td>
+            <td style="text-align: right;">52,093</td>
+        </tr>
+        
+        <tr>
+            <td>Mistral</td>
+            <td><strong>mistral-large</strong></td>
+            <td style="text-align: right;">108,086</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">90.0%</td>
+            <td style="text-align: right;">97,301</td>
+        </tr>
+        
+        <tr>
+            <td>Bedrock</td>
+            <td><strong>bedrock-claude-sonnet</strong></td>
+            <td style="text-align: right;">372,738</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">89.2%</td>
+            <td style="text-align: right;">332,533</td>
+        </tr>
+        
+        <tr>
+            <td>Azure</td>
+            <td><strong>azure-gpt-4-turbo</strong></td>
+            <td style="text-align: right;">251,924</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">88.9%</td>
+            <td style="text-align: right;">224,009</td>
+        </tr>
+        
+        <tr>
+            <td>Anthropic</td>
+            <td><strong>claude-haiku-4</strong></td>
+            <td style="text-align: right;">828,430</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">88.8%</td>
+            <td style="text-align: right;">736,004</td>
+        </tr>
+        
+        <tr>
+            <td>Azure</td>
+            <td><strong>azure-gpt-4</strong></td>
+            <td style="text-align: right;">255,423</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">88.8%</td>
+            <td style="text-align: right;">226,809</td>
+        </tr>
+        
+        <tr>
+            <td>Openai</td>
+            <td><strong>gpt-4</strong></td>
+            <td style="text-align: right;">1,378,807</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">88.5%</td>
+            <td style="text-align: right;">1,220,266</td>
+        </tr>
+        
+        <tr>
+            <td>Cohere</td>
+            <td><strong>command-r-plus</strong></td>
+            <td style="text-align: right;">56,256</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">88.5%</td>
+            <td style="text-align: right;">49,759</td>
+        </tr>
+        
+        <tr>
+            <td>Openai</td>
+            <td><strong>gpt-4-turbo</strong></td>
+            <td style="text-align: right;">875,346</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">88.4%</td>
+            <td style="text-align: right;">773,918</td>
+        </tr>
+        
+        <tr>
+            <td>Azure</td>
+            <td><strong>azure-gpt-35-turbo</strong></td>
+            <td style="text-align: right;">252,488</td>
+            <td style="text-align: right; color: #FF9800; font-weight: bold;">88.3%</td>
+            <td style="text-align: right;">223,061</td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>Task-Based Recommendations</h2>
+        <div class="recommendation"><strong>Fast Response Needed:</strong> command-r (avg 1015ms)</div>
+<div class="recommendation"><strong>Cost Sensitive:</strong> gemini-1.5-flash ($0.00/1K tokens)</div>
+<div class="recommendation"><strong>Balanced:</strong> gemini-1.5-flash (efficiency score: 1283064.14)</div>
+
+
+        <h2>Latency Distribution Analysis</h2>
+        <div class="chart-container">
+            <canvas id="latencyChart"></canvas>
+        </div>
+
+        <h2>Model Efficiency Comparison</h2>
+        <div class="chart-container">
+            <canvas id="efficiencyChart"></canvas>
+        </div>
+
+        <h2>Performance Alerts</h2>
+        <div class="alert alert-critical">
+            <div class="alert-icon">🔴</div>
+            <div class="alert-content">
+                <div class="alert-title">SLA Breach Detected</div>
+                <div class="alert-description">Model performance below threshold: 8+ second response times detected on document analysis queries. Current P95 latency: 3102ms. User abandonment risk high. Review model selection immediately.</div>
+            </div>
+        </div>
+        <div class="alert alert-success">
+            <div class="alert-icon">✓</div>
+            <div class="alert-content">
+                <div class="alert-title">Optimal Model Configuration Available</div>
+                <div class="alert-description">Analysis shows task-based routing can achieve 50% adoption increase and 30% cost reduction. Recommended: GPT-4 for complex tasks, Claude Sonnet for balanced workloads, GPT-3.5 for simple operations. Overall SLA compliance: 88.3%.</div>
+            </div>
+        </div>
+        <div class="alert alert-info">
+            <div class="alert-icon">ℹ️</div>
+            <div class="alert-content">
+                <div class="alert-title">Performance Monitoring Active</div>
+                <div class="alert-description">Tracking 12,632,538 calls across 15 models. Average latency: 1129ms. P99 latency: 4865ms. Use metrics below for capacity planning and model selection.</div>
+            </div>
+        </div>
+
+        <h2>Optimization Recommendations</h2>
+        <div class="recommendation">1. SLA compliance is 88.3% (target: 95%). Consider switching to faster models or optimizing prompts.</div>
+<div class="recommendation">2. gemini-1.5-flash is 252.8x more efficient than gpt-4. Consider migrating workloads.</div>
+
+
+        <div class="timestamp">
+            Generated: 2025-12-26 21:40:56 |
+            <a href="index.html" style="color: #2196f3; text-decoration: none;">View All Reports</a>
+        </div>
+    </div>
+    <script>
+        // Latency Distribution Chart
+        const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+        new Chart(latencyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['gemini-1.5-flash', 'gpt-4o-mini', 'azure-gpt-35-turbo', 'gpt-3.5-turbo', 'command-r', 'claude-haiku-4', 'bedrock-claude-haiku', 'gemini-pro'],
+                datasets: [{
+                    label: 'P50 Latency (ms)',
+                    data: [816, 816, 818, 816, 782, 818, 835, 814],
+                    backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                    borderColor: '#667eea',
+                    borderWidth: 1
+                }, {
+                    label: 'P95 Latency (ms)',
+                    data: [3162, 3121, 3404, 3150, 2334, 2919, 3040, 3027],
+                    backgroundColor: 'rgba(240, 147, 251, 0.6)',
+                    borderColor: '#f093fb',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Latency (ms)' } }
+                }
+            }
+        });
+
+        // Model Efficiency Chart
+        const efficiencyCtx = document.getElementById('efficiencyChart').getContext('2d');
+        new Chart(efficiencyCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Model Efficiency',
+                    data: [{x: 0.00017065775784986574, y: 1283064.1401193128, label: 'gemini-1.5-flas'}, {x: 0.0003419619319647729, y: 633981.0610554273, label: 'gpt-4o-mini'}, {x: 0.0009236232556191212, y: 234546.71342146062, label: 'azure-gpt-35-tu'}, {x: 0.0009275244648247034, y: 234443.34670736172, label: 'gpt-3.5-turbo'}, {x: 0.000925533201757074, y: 230121.06996417482, label: 'command-r'}, {x: 0.0021586051808237645, y: 101479.20478483613, label: 'claude-haiku-4'}, {x: 0.0021591753945008336, y: 101392.00951972145, label: 'bedrock-claude-'}, {x: 0.0023160243739844292, y: 94539.80024795879, label: 'gemini-pro'}, {x: 0.002851842563405632, y: 77423.15439108163, label: 'gemini-1.5-pro'}, {x: 0.005043392517969933, y: 42972.44517802654, label: 'mistral-medium'}],
+                    backgroundColor: '#43e97b',
+                    borderColor: '#38f9d7',
+                    pointRadius: 8,
+                    pointHoverRadius: 12
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.raw.label + ': Efficiency ' + context.parsed.y.toFixed(2) + ', Cost $' + context.parsed.x.toFixed(3);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Cost per 1K Tokens ($)' } },
+                    y: { title: { display: true, text: 'Efficiency Score' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

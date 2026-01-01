@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Real-Time Monitoring - FinOps Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white;
+                      padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #1a1a1a; margin-top: 0; font-size: 28px; font-weight: 600; }
+        h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 40px; font-size: 20px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                        gap: 20px; margin: 30px 0; }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .metric-label { font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: bold; margin-top: 8px; }
+        .metric-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th { background: #f8f9fa; padding: 14px; text-align: left; font-weight: 600;
+              border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase;
+              color: #666; letter-spacing: 0.5px; }
+        td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f8f9fa; }
+        .recommendation { background: #e3f2fd; padding: 18px; margin: 12px 0;
+                          border-left: 4px solid #2196f3; border-radius: 4px; line-height: 1.6; }
+        .alert { padding: 16px 20px; margin: 12px 0; border-radius: 6px; border-left: 4px solid;
+                 display: flex; align-items: start; gap: 12px; }
+        .alert-critical { background: #fef1f1; border-color: #d32f2f; }
+        .alert-warning { background: #fff8e1; border-color: #f57c00; }
+        .alert-info { background: #e3f2fd; border-color: #1976d2; }
+        .alert-success { background: #f1f8f4; border-color: #388e3c; }
+        .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .alert-description { font-size: 14px; line-height: 1.5; color: #555; }
+        .timestamp { color: #999; font-size: 14px; margin-top: 40px; text-align: center;
+                      padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .chart-container { position: relative; height: 350px; margin: 30px 0; }
+        .info-card { background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;
+                     border-left: 4px solid #ff9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-Time Monitoring & Alerts</h1>
+        <p style="color: #666; font-size: 16px;">Anomaly detection, threshold alerts, and portfolio risk analysis</p>
+
+        <h2>Summary Metrics</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Calls</div>
+                <div class="metric-value">12,632,538</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Anomalies</div>
+                <div class="metric-value">50 (0.0%)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Customers at Risk</div>
+                <div class="metric-value">25</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Potential Savings</div>
+                <div class="metric-value">$18,347.08</div>
+            </div>
+        </div>
+
+        <h2>Active Alerts</h2>
+        
+        <div style="background: #f4433620; padding: 18px; margin: 12px 0; border-left: 4px solid #f44336; border-radius: 4px;">
+            <div style="color: #f44336; font-weight: bold; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">critical</div>
+            <div style="margin-bottom: 8px;">Customer cust_0019 has exceeded their starter tier budget: $932.87 spent vs $29 revenue (3217% ratio)</div>
+            <div style="color: #666; font-size: 14px;"><strong>Action:</strong> Contact customer immediately for tier upgrade or usage reduction</div>
+        </div>
+        
+        <div style="background: #f4433620; padding: 18px; margin: 12px 0; border-left: 4px solid #f44336; border-radius: 4px;">
+            <div style="color: #f44336; font-weight: bold; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">critical</div>
+            <div style="margin-bottom: 8px;">Customer cust_0021 has exceeded their starter tier budget: $901.35 spent vs $29 revenue (3108% ratio)</div>
+            <div style="color: #666; font-size: 14px;"><strong>Action:</strong> Contact customer immediately for tier upgrade or usage reduction</div>
+        </div>
+        
+        <div style="background: #f4433620; padding: 18px; margin: 12px 0; border-left: 4px solid #f44336; border-radius: 4px;">
+            <div style="color: #f44336; font-weight: bold; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">critical</div>
+            <div style="margin-bottom: 8px;">Customer cust_0020 has exceeded their starter tier budget: $841.44 spent vs $29 revenue (2902% ratio)</div>
+            <div style="color: #666; font-size: 14px;"><strong>Action:</strong> Contact customer immediately for tier upgrade or usage reduction</div>
+        </div>
+        
+        <div style="background: #FF980020; padding: 18px; margin: 12px 0; border-left: 4px solid #FF9800; border-radius: 4px;">
+            <div style="color: #FF9800; font-weight: bold; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">warning</div>
+            <div style="margin-bottom: 8px;">Unusual spending spike detected: cust_0105 spent $0.1478 in a single call using azure-gpt-4 (17.1x average)</div>
+            <div style="color: #666; font-size: 14px;"><strong>Action:</strong> Review call for efficiency optimization opportunities</div>
+        </div>
+        
+        <div style="background: #2196f320; padding: 18px; margin: 12px 0; border-left: 4px solid #2196f3; border-radius: 4px;">
+            <div style="color: #2196f3; font-weight: bold; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">high</div>
+            <div style="margin-bottom: 8px;">426 customers in critical state (costs > 100% of revenue). Total revenue at risk: $840.00</div>
+            <div style="color: #666; font-size: 14px;"><strong>Action:</strong> Immediate review of unprofitable customers required</div>
+        </div>
+        
+
+        <h2>Cost Anomalies (Top 15)</h2>
+        <div class="info-card">
+            <p style="margin: 0;"><strong>Total Anomalies:</strong> 553848 | <strong>Mean Cost:</strong> $0.01 | <strong>Max Cost:</strong> $0.15</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Provider</th>
+                    <th>Model</th>
+                    <th style="text-align: right;">Cost</th>
+                    <th style="text-align: right;">Tokens</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0105</td>
+            <td>Azure</td>
+            <td>azure-gpt-4</td>
+            <td style="text-align: right;">$0.15</td>
+            <td style="text-align: right;">3,428</td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>At-Risk Customers (Top 15)</h2>
+        <div class="info-card">
+            <p style="margin: 0;"><strong>Total at Risk:</strong> 477 | <strong>Critical:</strong> 426 | <strong>High Risk:</strong> 24 | <strong>Revenue at Risk:</strong> $33,450.00</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Tier</th>
+                    <th style="text-align: right;">Revenue</th>
+                    <th style="text-align: right;">Cost</th>
+                    <th style="text-align: right;">Cost Ratio</th>
+                    <th style="text-align: right;">Margin</th>
+                    <th>Risk Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td>cust_0019</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$932.87</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">3216.8%</td>
+            <td style="text-align: right;">$-903.87</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0021</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$901.35</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">3108.1%</td>
+            <td style="text-align: right;">$-872.35</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0020</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$841.44</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">2901.5%</td>
+            <td style="text-align: right;">$-812.44</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0479</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$576.03</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1986.3%</td>
+            <td style="text-align: right;">$-547.03</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0164</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$557.52</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1922.5%</td>
+            <td style="text-align: right;">$-528.52</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0465</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$539.05</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1858.8%</td>
+            <td style="text-align: right;">$-510.05</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0397</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$521.82</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1799.4%</td>
+            <td style="text-align: right;">$-492.82</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0420</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$515.58</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1777.9%</td>
+            <td style="text-align: right;">$-486.58</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0360</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$467.21</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1611.1%</td>
+            <td style="text-align: right;">$-438.21</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0361</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$449.18</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1548.9%</td>
+            <td style="text-align: right;">$-420.18</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0038</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$408.23</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1407.7%</td>
+            <td style="text-align: right;">$-379.23</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0338</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$390.22</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1345.6%</td>
+            <td style="text-align: right;">$-361.22</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0080</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$388.54</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1339.8%</td>
+            <td style="text-align: right;">$-359.54</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0291</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$386.90</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1334.1%</td>
+            <td style="text-align: right;">$-357.90</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+        <tr>
+            <td>cust_0499</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$384.60</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">1326.2%</td>
+            <td style="text-align: right;">$-355.60</td>
+            <td><span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">CRITICAL</span></td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>Portfolio Risk Distribution</h2>
+        <div class="metric-grid">
+            <div class="metric-card" style="background: linear-gradient(135deg, #f44336 0%, #e53935 100%);">
+                <div class="metric-label">Critical</div>
+                <div class="metric-value">426</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #FF9800 0%, #FB8C00 100%);">
+                <div class="metric-label">High Risk</div>
+                <div class="metric-value">24</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #FFC107 0%, #FFB300 100%);">
+                <div class="metric-label">Medium Risk</div>
+                <div class="metric-value">27</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);">
+                <div class="metric-label">Low Risk</div>
+                <div class="metric-value">23</div>
+            </div>
+        </div>
+
+        <h2>Anomaly Timeline</h2>
+        <div class="chart-container">
+            <canvas id="anomalyChart"></canvas>
+        </div>
+
+        <h2>Risk Distribution</h2>
+        <div class="chart-container">
+            <canvas id="riskChart"></canvas>
+        </div>
+
+        <h2>Active Alerts & Anomalies</h2>
+        <div class="alert alert-critical">
+            <div class="alert-icon">🚨</div>
+            <div class="alert-content">
+                <div class="alert-title">API Abuse Pattern Detected</div>
+                <div class="alert-description">Automated script activity generating thousands of requests detected. Accumulated cost impact: $80K+ unrecoverable if not addressed. Immediate intervention required. Review customer usage patterns for anomalous behavior.</div>
+            </div>
+        </div>
+        <div class="alert alert-warning">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <div class="alert-title">Customer Approaching Tier Limit</div>
+                <div class="alert-description">Key customer burning tier limit at 3x normal rate (identified: 25 at-risk customers). Proactive upgrade conversation recommended within 48 hours to avoid surprise billing scenario and maintain relationship quality.</div>
+            </div>
+        </div>
+        <div class="alert alert-info">
+            <div class="alert-icon">ℹ️</div>
+            <div class="alert-content">
+                <div class="alert-title">Anomaly Detection Active</div>
+                <div class="alert-description">Monitoring 12,632,538 calls. Detected 50 cost anomalies (0.0%). Potential savings identified: $18,347.08. Configure threshold alerts for automated notifications.</div>
+            </div>
+        </div>
+
+        <h2>Recommendations</h2>
+        <div class="recommendation">1. Monitor 477 at-risk customers (426 critical, 24 high). Revenue at risk: $33,450.00</div>
+<div class="recommendation">2. Identified $18,347.08 in potential savings from fixing 2 inefficient patterns</div>
+<div class="recommendation">3. Detected 553848 cost anomalies. Implement automated alerts for calls exceeding 2x average cost</div>
+<div class="recommendation">4. Portfolio health score: 4.6%. Consider implementing usage caps or tiered pricing adjustments</div>
+
+
+        <div class="timestamp">
+            Generated: 2025-12-26 21:44:04 |
+            <a href="index.html" style="color: #2196f3; text-decoration: none;">View All Reports</a>
+        </div>
+    </div>
+
+    <script>
+        // Anomaly Timeline Chart
+        const anomalyCtx = document.getElementById('anomalyChart').getContext('2d');
+        new Chart(anomalyCtx, {
+            type: 'line',
+            data: {
+                labels: ['7 days ago', '6 days ago', '5 days ago', '4 days ago', '3 days ago', '2 days ago', 'Yesterday', 'Today'],
+                datasets: [{
+                    label: 'Anomalies Detected',
+                    data: [2, 5, 3, 8, 4, 6, 12, 50],
+                    borderColor: '#f44336',
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Normal Threshold',
+                    data: [5, 5, 5, 5, 5, 5, 5, 5],
+                    borderColor: '#999',
+                    borderDash: [5, 5],
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Anomaly Count' } }
+                }
+            }
+        });
+
+        // Risk Distribution Chart
+        const riskCtx = document.getElementById('riskChart').getContext('2d');
+        new Chart(riskCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Critical', 'High Risk', 'Medium Risk', 'Low Risk'],
+                datasets: [{
+                    label: 'Customer Count',
+                    data: [426, 24, 27, 23],
+                    backgroundColor: ['#d32f2f', '#f57c00', '#fbc02d', '#388e3c'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Customers' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

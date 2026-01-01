@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Customer Profitability - FinOps Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white;
+                      padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #1a1a1a; margin-top: 0; font-size: 32px; }
+        h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 40px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                        gap: 20px; margin: 30px 0; }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .metric-label { font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: bold; margin-top: 8px; }
+        .metric-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th { background: #f8f9fa; padding: 14px; text-align: left; font-weight: 600;
+              border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase;
+              color: #666; letter-spacing: 0.5px; }
+        td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f8f9fa; }
+        .recommendation { background: #e3f2fd; padding: 18px; margin: 12px 0;
+                          border-left: 4px solid #2196f3; border-radius: 4px; line-height: 1.6; }
+        .timestamp { color: #999; font-size: 14px; margin-top: 40px; text-align: center;
+                      padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .info-card { background: #ffe6e6; padding: 20px; border-radius: 8px; margin: 20px 0;
+                     border-left: 4px solid #f44336; }
+        .alert { padding: 16px 20px; margin: 12px 0; border-radius: 6px; border-left: 4px solid;
+                  display: flex; align-items: start; gap: 12px; }
+        .alert-critical { background: #fef1f1; border-color: #d32f2f; }
+        .alert-warning { background: #fff8e1; border-color: #f57c00; }
+        .alert-info { background: #e3f2fd; border-color: #1976d2; }
+        .alert-success { background: #f1f8f4; border-color: #388e3c; }
+        .alert-icon { font-size: 24px; line-height: 1; }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .alert-description { opacity: 0.9; line-height: 1.5; }
+        .chart-container { position: relative; height: 350px; margin: 30px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Customer Profitability Analysis</h1>
+        <p style="color: #666; font-size: 16px;">Customer-level margin analysis and profitability tracking - Identify which customers drive profits vs. losses</p>
+
+        <h2>Summary Metrics</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Revenue</div>
+                <div class="metric-value">$48,400.00</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Cost</div>
+                <div class="metric-value">$109,105.31</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Gross Margin</div>
+                <div class="metric-value">$-60,705.31</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Margin %</div>
+                <div class="metric-value">-125.4%</div>
+            </div>
+        </div>
+
+        <h2>Profitability by Tier</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tier</th>
+                    <th style="text-align: right;">Price</th>
+                    <th style="text-align: right;">Customers</th>
+                    <th style="text-align: right;">Revenue</th>
+                    <th style="text-align: right;">Cost</th>
+                    <th style="text-align: right;">Margin %</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td><strong>enterprise</strong></td>
+            <td style="text-align: right;">$299.00</td>
+            <td style="text-align: right;">408</td>
+            <td style="text-align: right;">$121,992.00</td>
+            <td style="text-align: right;">$18,034.19</td>
+            <td style="text-align: right; color: #4CAF50; font-weight: bold;">85.2%</td>
+        </tr>
+        
+        <tr>
+            <td><strong>pro</strong></td>
+            <td style="text-align: right;">$99.00</td>
+            <td style="text-align: right;">480</td>
+            <td style="text-align: right;">$47,520.00</td>
+            <td style="text-align: right;">$40,110.06</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">15.6%</td>
+        </tr>
+        
+        <tr>
+            <td><strong>starter</strong></td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">482</td>
+            <td style="text-align: right;">$13,978.00</td>
+            <td style="text-align: right;">$50,961.06</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">-264.6%</td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>Unprofitable Customers</h2>
+        <div class="info-card">
+            <p style="margin: 0;"><strong>Total Unprofitable:</strong> 426 (85.2% of customer base) | <strong>Total Loss:</strong> $68,257.57</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Tier</th>
+                    <th style="text-align: right;">Revenue</th>
+                    <th style="text-align: right;">Cost</th>
+                    <th style="text-align: right;">Margin</th>
+                    <th style="text-align: right;">Calls</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td>cust_0024</td>
+            <td>pro</td>
+            <td style="text-align: right;">$99.00</td>
+            <td style="text-align: right;">$1,009.77</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-910.77</td>
+            <td style="text-align: right;">29,734</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0019</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$932.87</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-903.87</td>
+            <td style="text-align: right;">25,709</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0021</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$901.35</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-872.35</td>
+            <td style="text-align: right;">29,450</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0020</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$841.44</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-812.44</td>
+            <td style="text-align: right;">27,513</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0023</td>
+            <td>pro</td>
+            <td style="text-align: right;">$99.00</td>
+            <td style="text-align: right;">$818.39</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-719.39</td>
+            <td style="text-align: right;">26,808</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0022</td>
+            <td>pro</td>
+            <td style="text-align: right;">$99.00</td>
+            <td style="text-align: right;">$723.45</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-624.45</td>
+            <td style="text-align: right;">24,048</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0025</td>
+            <td>enterprise</td>
+            <td style="text-align: right;">$299.00</td>
+            <td style="text-align: right;">$867.77</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-568.77</td>
+            <td style="text-align: right;">26,815</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0479</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$576.03</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-547.03</td>
+            <td style="text-align: right;">30,548</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0164</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$557.52</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-528.52</td>
+            <td style="text-align: right;">24,050</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0465</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$539.05</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-510.05</td>
+            <td style="text-align: right;">24,046</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0397</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$521.82</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-492.82</td>
+            <td style="text-align: right;">31,375</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0420</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$515.58</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-486.58</td>
+            <td style="text-align: right;">25,710</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0027</td>
+            <td>enterprise</td>
+            <td style="text-align: right;">$299.00</td>
+            <td style="text-align: right;">$745.61</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-446.61</td>
+            <td style="text-align: right;">23,355</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0360</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$467.21</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-438.21</td>
+            <td style="text-align: right;">28,746</td>
+        </tr>
+        
+        <tr>
+            <td>cust_0361</td>
+            <td>starter</td>
+            <td style="text-align: right;">$29.00</td>
+            <td style="text-align: right;">$449.18</td>
+            <td style="text-align: right; color: #f44336; font-weight: bold;">$-420.18</td>
+            <td style="text-align: right;">24,056</td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>Margin Distribution</h2>
+        <div class="metric-grid">
+            <div class="metric-card" style="background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);">
+                <div class="metric-label">High Margin (&gt;50%)</div>
+                <div class="metric-value">23</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #8BC34A 0%, #7CB342 100%);">
+                <div class="metric-label">Medium Margin (20-50%)</div>
+                <div class="metric-value">27</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #FFC107 0%, #FFB300 100%);">
+                <div class="metric-label">Low Margin (0-20%)</div>
+                <div class="metric-value">24</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #f44336 0%, #e53935 100%);">
+                <div class="metric-label">Unprofitable (&lt;0%)</div>
+                <div class="metric-value">426</div>
+            </div>
+        </div>
+
+        <h2>Profitability by Tier Comparison</h2>
+        <div class="chart-container">
+            <canvas id="tierChart"></canvas>
+        </div>
+
+        <h2>Customer Margin Distribution</h2>
+        <div class="chart-container">
+            <canvas id="marginChart"></canvas>
+        </div>
+
+        <h2>Profitability Alerts</h2>
+        <div class="alert alert-critical">
+            <div class="alert-icon">🚨</div>
+            <div class="alert-content">
+                <div class="alert-title">Unprofitable Customer Segment Detected</div>
+                <div class="alert-description">426 customers (85.2% of base) generating negative margins. Total loss: $68,257.57. Critical case: $5K/month enterprise customer costing $6K/month in AI services. Immediate action: implement usage-based billing or tier restructuring for Pro plan power users.</div>
+            </div>
+        </div>
+        <div class="alert alert-warning">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <div class="alert-title">Unlimited Plan Risk</div>
+                <div class="alert-description">Unlimited plans showing unsustainable economics: users generating 10,000+ operations monthly at $49/month tier, actual cost $300+. Accumulated losses: $400K+. Recommendation: add usage thresholds or convert to usage-based billing above baseline to protect margins.</div>
+            </div>
+        </div>
+        <div class="alert alert-success">
+            <div class="alert-icon">✅</div>
+            <div class="alert-content">
+                <div class="alert-title">High-Margin Customer Opportunity</div>
+                <div class="alert-description">Top 20% customers showing 70%+ margins represent profit center. Overall margin -125.4% masks this opportunity. Recommendation: create VIP support tier for profitable customers to drive 98% renewal rates and 40% contract expansion (retention focus on profit centers, not all revenue equally).</div>
+            </div>
+        </div>
+
+        <h2>Recommendations</h2>
+        <div class="recommendation">1. 426 customers (85.2%) are unprofitable, losing $68,257.57. Implement usage caps or upgrade prompts.</div>
+<div class="recommendation">2. pro tier shows low margin (15.6%). Consider price increase or usage limits.</div>
+<div class="recommendation">3. starter tier shows low margin (-264.6%). Consider price increase or usage limits.</div>
+<div class="recommendation">4. 23 customers have >50% margins. These are ideal customer profiles - focus acquisition on similar segments.</div>
+<div class="recommendation">5. Overall margin: -125.4%. Target: >40% for healthy SaaS business.</div>
+
+
+        <div class="timestamp">
+            Generated: 2025-12-26 22:06:29 |
+            <a href="index.html" style="color: #2196f3; text-decoration: none;">View All Reports</a>
+        </div>
+    </div>
+
+    <script>
+        // Profitability by Tier Chart
+        const tierCtx = document.getElementById('tierChart').getContext('2d');
+        const tierData = [{'tier': 'enterprise', 'tier_price': 299, 'customer_count': 408, 'total_revenue': 121992, 'total_cost': 18034.190415, 'margin': 103957.809585, 'margin_percentage': 85.21690732589022, 'avg_cost_per_customer': 44.201447095588236}, {'tier': 'pro', 'tier_price': 99, 'customer_count': 480, 'total_revenue': 47520, 'total_cost': 40110.056932, 'margin': 7409.9430680000005, 'margin_percentage': 15.593314537037037, 'avg_cost_per_customer': 83.56261860833334}, {'tier': 'starter', 'tier_price': 29, 'customer_count': 482, 'total_revenue': 13978, 'total_cost': 50961.062976, 'margin': -36983.062976, 'margin_percentage': -264.5805049077121, 'avg_cost_per_customer': 105.72834642323652}];
+        new Chart(tierCtx, {
+            type: 'bar',
+            data: {
+                labels: tierData.map(t => t.tier),
+                datasets: [{
+                    label: 'Revenue',
+                    data: tierData.map(t => t.total_revenue),
+                    backgroundColor: '#667eea',
+                    stack: 'stack0'
+                }, {
+                    label: 'Cost',
+                    data: tierData.map(t => t.total_cost),
+                    backgroundColor: '#f5576c',
+                    stack: 'stack0'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            footer: function(tooltipItems) {
+                                const idx = tooltipItems[0].dataIndex;
+                                const tier = tierData[idx];
+                                return 'Margin: ' + tier.margin_percentage.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        title: { display: true, text: 'Amount ($)' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Customer Margin Distribution Chart
+        const marginCtx = document.getElementById('marginChart').getContext('2d');
+        const distData = {'distribution': {'high_margin': 23, 'medium_margin': 27, 'low_margin': 24, 'unprofitable': 426}, 'total_customers': 500, 'high_margin_customers': [{'customer_id': 'cust_0009', 'tier': 'enterprise', 'revenue': 299, 'cost': 83.482355, 'margin': 215.51764500000002, 'margin_percentage': 72.07947993311036, 'call_count': 22391, 'status': 'high_margin'}, {'customer_id': 'cust_0281', 'tier': 'enterprise', 'revenue': 299, 'cost': 94.668905, 'margin': 204.331095, 'margin_percentage': 68.33815886287626, 'call_count': 21842, 'status': 'high_margin'}, {'customer_id': 'cust_0008', 'tier': 'enterprise', 'revenue': 299, 'cost': 95.669742, 'margin': 203.33025800000001, 'margin_percentage': 68.00343076923077, 'call_count': 23634, 'status': 'high_margin'}, {'customer_id': 'cust_0311', 'tier': 'enterprise', 'revenue': 299, 'cost': 100.383418, 'margin': 198.616582, 'margin_percentage': 66.42695050167224, 'call_count': 24601, 'status': 'high_margin'}, {'customer_id': 'cust_0320', 'tier': 'enterprise', 'revenue': 299, 'cost': 101.656234, 'margin': 197.34376600000002, 'margin_percentage': 66.00125953177258, 'call_count': 24329, 'status': 'high_margin'}, {'customer_id': 'cust_0393', 'tier': 'enterprise', 'revenue': 299, 'cost': 110.12141, 'margin': 188.87859, 'margin_percentage': 63.17009698996655, 'call_count': 24477, 'status': 'high_margin'}, {'customer_id': 'cust_0301', 'tier': 'enterprise', 'revenue': 299, 'cost': 117.656909, 'margin': 181.34309100000002, 'margin_percentage': 60.64986321070235, 'call_count': 26816, 'status': 'high_margin'}, {'customer_id': 'cust_0007', 'tier': 'enterprise', 'revenue': 299, 'cost': 119.491968, 'margin': 179.50803200000001, 'margin_percentage': 60.03613110367893, 'call_count': 27229, 'status': 'high_margin'}, {'customer_id': 'cust_0351', 'tier': 'enterprise', 'revenue': 299, 'cost': 121.435537, 'margin': 177.564463, 'margin_percentage': 59.38610802675585, 'call_count': 26397, 'status': 'high_margin'}, {'customer_id': 'cust_0202', 'tier': 'enterprise', 'revenue': 299, 'cost': 123.54573, 'margin': 175.45427, 'margin_percentage': 58.680357859531775, 'call_count': 25574, 'status': 'high_margin'}], 'unprofitable_customers': [{'customer_id': 'cust_0236', 'tier': 'pro', 'revenue': 99, 'cost': 102.873482, 'margin': -3.8734819999999957, 'margin_percentage': -3.9126080808080763, 'call_count': 24456, 'status': 'unprofitable'}, {'customer_id': 'cust_0496', 'tier': 'enterprise', 'revenue': 299, 'cost': 305.01579, 'margin': -6.015789999999981, 'margin_percentage': -2.0119698996655453, 'call_count': 28206, 'status': 'unprofitable'}, {'customer_id': 'cust_0185', 'tier': 'pro', 'revenue': 99, 'cost': 106.04505, 'margin': -7.045050000000003, 'margin_percentage': -7.116212121212125, 'call_count': 21009, 'status': 'unprofitable'}, {'customer_id': 'cust_0085', 'tier': 'pro', 'revenue': 99, 'cost': 108.380753, 'margin': -9.380752999999999, 'margin_percentage': -9.475508080808078, 'call_count': 23223, 'status': 'unprofitable'}, {'customer_id': 'cust_0278', 'tier': 'pro', 'revenue': 99, 'cost': 109.566432, 'margin': -10.566432000000006, 'margin_percentage': -10.673163636363643, 'call_count': 24189, 'status': 'unprofitable'}, {'customer_id': 'cust_0181', 'tier': 'pro', 'revenue': 99, 'cost': 110.236707, 'margin': -11.236706999999996, 'margin_percentage': -11.350209090909086, 'call_count': 25563, 'status': 'unprofitable'}, {'customer_id': 'cust_0077', 'tier': 'pro', 'revenue': 99, 'cost': 110.78835, 'margin': -11.788349999999994, 'margin_percentage': -11.907424242424236, 'call_count': 21832, 'status': 'unprofitable'}, {'customer_id': 'cust_0385', 'tier': 'pro', 'revenue': 99, 'cost': 111.081902, 'margin': -12.081902, 'margin_percentage': -12.203941414141413, 'call_count': 23627, 'status': 'unprofitable'}, {'customer_id': 'cust_0359', 'tier': 'pro', 'revenue': 99, 'cost': 111.340962, 'margin': -12.340962000000005, 'margin_percentage': -12.465618181818186, 'call_count': 25718, 'status': 'unprofitable'}, {'customer_id': 'cust_0378', 'tier': 'pro', 'revenue': 99, 'cost': 111.633171, 'margin': -12.633171000000004, 'margin_percentage': -12.760778787878793, 'call_count': 24182, 'status': 'unprofitable'}]};
+        new Chart(marginCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['High Margin (>50%)', 'Medium Margin (20-50%)', 'Low Margin (0-20%)', 'Unprofitable (<0%)'],
+                datasets: [{
+                    data: [
+                        distData.distribution.high_margin,
+                        distData.distribution.medium_margin,
+                        distData.distribution.low_margin,
+                        distData.distribution.unprofitable
+                    ],
+                    backgroundColor: ['#4CAF50', '#8BC34A', '#FFC107', '#f44336'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' customers (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
