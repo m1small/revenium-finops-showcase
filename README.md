@@ -198,17 +198,28 @@ python3 serve.py
 # Access at http://localhost:8000
 ```
 
-### AWS Amplify Static Hosting
+### GitHub Pages Static Hosting
 
-1. Connect GitHub repository to AWS Amplify
-2. Amplify auto-detects `amplify.yml` and builds:
-   - Generates 2GB CSV dataset
-   - Runs all 13 analyzers
-   - Creates static index.html
-3. Deploys to CloudFront CDN
+The application automatically deploys to GitHub Pages via GitHub Actions when code is pushed to the `main` branch.
+
+**Deployment Process:**
+1. GitHub Actions workflow (`.github/workflows/deploy-github-pages.yml`) triggers on push to main
+2. Workflow executes:
+   - Generates 2GB CSV dataset (via `run_all_simulators.py 2048`)
+   - Runs all 13 analyzers (via `run_all_analyzers.py`)
+   - Creates static index.html for GitHub Pages hosting
+3. Deploys `reports/html/` directory to GitHub Pages
 
 **Build artifacts:** `reports/html/` (all HTML reports + index)
 **Build time:** ~15-20 minutes
+
+**Setup Requirements:**
+1. Enable GitHub Pages in repository settings
+2. Set source to "GitHub Actions"
+3. Workflow will run automatically on push to main
+
+**Manual Deployment:**
+You can also trigger deployment manually via the GitHub Actions tab in your repository.
 
 ## License
 

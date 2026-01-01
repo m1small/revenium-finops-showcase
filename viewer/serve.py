@@ -1132,7 +1132,7 @@ class StatusViewerServer:
             {report_cards_html}
 
             <div class="footer">
-                <p>This is a static showcase deployment hosted on AWS Amplify</p>
+                <p>This is a static showcase deployment hosted on GitHub Pages</p>
                 <p>For the live local version with data generation and real-time analysis, see the <a href="https://github.com/revenium/finops-showcase" class="github-link">GitHub repository</a></p>
             </div>
         </div>

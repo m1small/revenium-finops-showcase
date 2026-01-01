@@ -1,0 +1,63 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate simulated data
+        run: |
+          cd src
+          python3 run_all_simulators.py 2048
+        timeout-minutes: 20
+
+      - name: Run all analyzers
+        run: |
+          cd src
+          python3 run_all_analyzers.py
+        timeout-minutes: 15
+
+      - name: Generate static index page
+        run: |
+          python3 -c "import sys; sys.path.insert(0, 'viewer'); from serve import StatusViewerServer; StatusViewerServer(report_dir='reports/html').create_status_page('reports/html/index.html', static_mode=True)"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'reports/html'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
