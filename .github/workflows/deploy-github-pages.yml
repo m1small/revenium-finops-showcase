@@ -29,7 +29,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: src/data/simulated_calls.csv
-          key: simulated-data-2048mb-v1
+          key: simulated-data-500mb-v1
           restore-keys: |
             simulated-data-
 
@@ -56,18 +56,18 @@ jobs:
         if: steps.check_data.outputs.skip_generation != 'true'
         run: |
           echo "Starting data generation..."
-          python3 run_all_simulators.py 2048
+          python3 run_all_simulators.py 500
           echo "Data generation complete"
           ls -lh data/simulated_calls.csv
         working-directory: src
-        timeout-minutes: 30
+        timeout-minutes: 20
 
       - name: Save generated data to cache
         if: steps.check_data.outputs.skip_generation != 'true'
         uses: actions/cache/save@v4
         with:
           path: src/data/simulated_calls.csv
-          key: simulated-data-2048mb-v1
+          key: simulated-data-500mb-v1
 
       - name: Verify data exists before analyzers
         run: |
