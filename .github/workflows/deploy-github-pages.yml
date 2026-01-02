@@ -62,6 +62,23 @@ jobs:
         working-directory: src
         timeout-minutes: 30
 
+      - name: Save generated data to cache
+        if: steps.check_data.outputs.skip_generation != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: src/data/simulated_calls.csv
+          key: simulated-data-2048mb-v1
+
+      - name: Verify data exists before analyzers
+        run: |
+          if [ ! -f "src/data/simulated_calls.csv" ]; then
+            echo "ERROR: Data file not found!"
+            exit 1
+          fi
+          size=$(stat -c%s "src/data/simulated_calls.csv")
+          size_mb=$((size / 1024 / 1024))
+          echo "✓ Data file verified: ${size_mb}MB"
+
       - name: Run all analyzers
         run: |
           echo "Starting analyzer execution..."
