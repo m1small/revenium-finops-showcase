@@ -29,9 +29,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: src/data/simulated_calls.csv
-          key: simulated-data-500mb-v1
-          restore-keys: |
-            simulated-data-
+          key: showcase-data-500mb-v1
 
       - name: Check for existing data
         id: check_data
@@ -67,7 +65,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: src/data/simulated_calls.csv
-          key: simulated-data-500mb-v1
+          key: showcase-data-500mb-v1
 
       - name: Verify data exists before analyzers
         run: |
