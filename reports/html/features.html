@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Feature Economics - FinOps Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
@@ -41,6 +42,29 @@
         .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
         .alert-description { opacity: 0.9; line-height: 1.5; }
         .chart-container { position: relative; height: 350px; margin: 30px 0; }
+    
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 20px; border-radius: 0; }
+            h1 { font-size: 24px; }
+            h2 { font-size: 20px; }
+            .metric-grid { grid-template-columns: 1fr; gap: 15px; }
+            .metric-value { font-size: 24px; }
+            table { font-size: 14px; }
+            th, td { padding: 10px 8px; }
+            .chart-container { height: 250px; }
+            .alert { flex-direction: column; gap: 8px; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 15px; }
+            h1 { font-size: 20px; }
+            h2 { font-size: 18px; }
+            .metric-value { font-size: 20px; }
+            table { font-size: 12px; display: block; overflow-x: auto; }
+            th, td { padding: 8px 6px; }
+        }
+
     </style>
 </head>
 <body>
