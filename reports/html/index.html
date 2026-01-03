@@ -529,6 +529,35 @@
             max-width: 100%;
             max-height: 400px;
         }
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 20px; border-radius: 0; }
+            .header h1 { font-size: 28px; }
+            .header p { font-size: 14px; }
+            .content { padding: 20px; }
+            .info-grid { grid-template-columns: 1fr; gap: 10px; }
+            .info-value { font-size: 18px; }
+            .category-header { font-size: 18px; }
+            .report-grid { grid-template-columns: 1fr; gap: 15px; }
+            .report-card h4 { font-size: 15px; padding-right: 70px; }
+            .report-card p { font-size: 13px; }
+        }
+        @media (max-width: 480px) {
+            .header { padding: 25px; }
+            .header h1 { font-size: 24px; }
+            .header p { font-size: 13px; }
+            .content { padding: 15px; }
+            .info-box { padding: 15px; }
+            .info-value { font-size: 16px; }
+            .info-label { font-size: 11px; }
+            .category-header { font-size: 16px; }
+            .report-card { padding: 15px; }
+            .report-card h4 { font-size: 14px; }
+            .report-card p { font-size: 12px; margin-bottom: 10px; }
+            .view-button { padding: 8px 16px; font-size: 13px; }
+            .status-badge { top: 10px; right: 10px; padding: 4px 10px; font-size: 10px; }
+        }
     </style>
 </head>
 <body>
