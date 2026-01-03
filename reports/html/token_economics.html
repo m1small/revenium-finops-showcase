@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Token Economics & Efficiency Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white;
+                      padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #1a1a1a; margin-top: 0; font-size: 32px; }
+        h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 40px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                        gap: 20px; margin: 30px 0; }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .metric-label { font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: bold; margin-top: 8px; }
+        .metric-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th { background: #f8f9fa; padding: 14px; text-align: left; font-weight: 600;
+              border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase;
+              color: #666; letter-spacing: 0.5px; }
+        td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f8f9fa; }
+        .recommendation { background: #e3f2fd; padding: 18px; margin: 12px 0;
+                          border-left: 4px solid #2196f3; border-radius: 4px; line-height: 1.6; }
+        .timestamp { color: #999; font-size: 14px; margin-top: 40px; text-align: center;
+                      padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .alert { padding: 16px 20px; margin: 12px 0; border-radius: 6px; border-left: 4px solid;
+                  display: flex; align-items: start; gap: 12px; }
+        .alert-critical { background: #fef1f1; border-color: #d32f2f; }
+        .alert-warning { background: #fff8e1; border-color: #f57c00; }
+        .alert-info { background: #e3f2fd; border-color: #1976d2; }
+        .alert-success { background: #f1f8f4; border-color: #388e3c; }
+        .alert-icon { font-size: 24px; line-height: 1; }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .alert-description { opacity: 0.9; line-height: 1.5; }
+        .chart-container { position: relative; height: 350px; margin: 30px 0; }
+    
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <h1>💰 Token Economics & Efficiency Analysis</h1>
+        <p style="color: #666; font-size: 16px; margin-top: -10px;">
+            Deep dive into token usage patterns and cost optimization opportunities
+        </p>
+
+        <h2>Summary Metrics</h2>
+        
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Tokens</div>
+                <div class="metric-value">8,019,602,540</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Cost</div>
+                <div class="metric-value">$111,168.79</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Cost per 1K Tokens</div>
+                <div class="metric-value">$0.01</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Avg I/O Ratio</div>
+                <div class="metric-value">1.35</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="metric-label">Wasteful Calls</div>
+                <div class="metric-value">161,654</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="metric-label">Wasted Cost</div>
+                <div class="metric-value">$13,568.39</div>
+            </div>
+        </div>
+    
+
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #333;">Input/Output Token Distribution</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div>
+                    <strong>Median I/O Ratio:</strong><br>
+                    <span style="font-size: 24px; color: #667eea;">1.37</span>
+                </div>
+                <div>
+                    <strong>Balanced Calls:</strong><br>
+                    <span style="font-size: 20px; color: #43e97b;">8,737,176</span>
+                    <span style="color: #666; font-size: 13px;"> (0.5-2.0 ratio)</span>
+                </div>
+                <div>
+                    <strong>Input-Heavy:</strong><br>
+                    <span style="font-size: 20px; color: #f57c00;">3,162,864</span>
+                    <span style="color: #666; font-size: 13px;"> (&gt;2.0 ratio)</span>
+                </div>
+                <div>
+                    <strong>Output-Heavy:</strong><br>
+                    <span style="font-size: 20px; color: #1976d2;">725,478</span>
+                    <span style="color: #666; font-size: 13px;"> (&lt;0.5 ratio)</span>
+                </div>
+            </div>
+        </div>
+    
+
+        <h2>Model Token Economics</h2>
+        <div class="chart-container">
+            <canvas id="modelCostChart"></canvas>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th style="text-align: right;">Calls</th>
+                    <th style="text-align: right;">Total Tokens</th>
+                    <th style="text-align: right;">I/O Ratio</th>
+                    <th style="text-align: right;">Cost/1K Tokens</th>
+                    <th style="text-align: right;">Efficiency Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td><strong>gpt-4</strong></td>
+                <td style="text-align: right;">1,382,705</td>
+                <td style="text-align: right;">867,340,389</td>
+                <td style="text-align: right;">1.34</td>
+                <td style="text-align: right;">$0.04</td>
+                <td style="text-align: right; color: #f57c00; font-weight: bold;">69.0</td>
+            </tr>
+        
+            <tr>
+                <td><strong>gpt-4o-mini</strong></td>
+                <td style="text-align: right;">1,024,551</td>
+                <td style="text-align: right;">652,738,809</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">98.7</td>
+            </tr>
+        
+            <tr>
+                <td><strong>claude-sonnet-4</strong></td>
+                <td style="text-align: right;">907,961</td>
+                <td style="text-align: right;">580,630,514</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">93.3</td>
+            </tr>
+        
+            <tr>
+                <td><strong>claude-3.5-sonnet</strong></td>
+                <td style="text-align: right;">922,502</td>
+                <td style="text-align: right;">572,719,424</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">93.3</td>
+            </tr>
+        
+            <tr>
+                <td><strong>gpt-4-turbo</strong></td>
+                <td style="text-align: right;">885,560</td>
+                <td style="text-align: right;">570,746,040</td>
+                <td style="text-align: right;">1.34</td>
+                <td style="text-align: right;">$0.02</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">86.0</td>
+            </tr>
+        
+            <tr>
+                <td><strong>gpt-3.5-turbo</strong></td>
+                <td style="text-align: right;">873,508</td>
+                <td style="text-align: right;">553,512,335</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">98.3</td>
+            </tr>
+        
+            <tr>
+                <td><strong>claude-opus-4</strong></td>
+                <td style="text-align: right;">852,155</td>
+                <td style="text-align: right;">546,922,773</td>
+                <td style="text-align: right;">1.36</td>
+                <td style="text-align: right;">$0.04</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">70.6</td>
+            </tr>
+        
+            <tr>
+                <td><strong>gpt-4o</strong></td>
+                <td style="text-align: right;">838,007</td>
+                <td style="text-align: right;">538,259,350</td>
+                <td style="text-align: right;">1.36</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">92.5</td>
+            </tr>
+        
+            <tr>
+                <td><strong>claude-haiku-4</strong></td>
+                <td style="text-align: right;">824,907</td>
+                <td style="text-align: right;">515,660,147</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">97.4</td>
+            </tr>
+        
+            <tr>
+                <td><strong>gemini-1.5-pro</strong></td>
+                <td style="text-align: right;">714,212</td>
+                <td style="text-align: right;">461,026,728</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">97.0</td>
+            </tr>
+        
+            <tr>
+                <td><strong>gemini-1.5-flash</strong></td>
+                <td style="text-align: right;">686,309</td>
+                <td style="text-align: right;">436,149,828</td>
+                <td style="text-align: right;">1.32</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">98.9</td>
+            </tr>
+        
+            <tr>
+                <td><strong>gemini-pro</strong></td>
+                <td style="text-align: right;">543,912</td>
+                <td style="text-align: right;">340,655,413</td>
+                <td style="text-align: right;">1.33</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">97.4</td>
+            </tr>
+        
+            <tr>
+                <td><strong>bedrock-claude-opus</strong></td>
+                <td style="text-align: right;">358,940</td>
+                <td style="text-align: right;">234,026,784</td>
+                <td style="text-align: right;">1.34</td>
+                <td style="text-align: right;">$0.04</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">70.5</td>
+            </tr>
+        
+            <tr>
+                <td><strong>bedrock-claude-haiku</strong></td>
+                <td style="text-align: right;">360,381</td>
+                <td style="text-align: right;">227,813,847</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">97.4</td>
+            </tr>
+        
+            <tr>
+                <td><strong>bedrock-claude-sonnet</strong></td>
+                <td style="text-align: right;">357,630</td>
+                <td style="text-align: right;">221,579,557</td>
+                <td style="text-align: right;">1.36</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">93.3</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Model Efficiency Rankings</h2>
+        <div class="chart-container">
+            <canvas id="efficiencyChart"></canvas>
+        </div>
+
+        <h2>Feature Token Analysis</h2>
+        <div class="chart-container">
+            <canvas id="featureCostChart"></canvas>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th style="text-align: right;">Calls</th>
+                    <th style="text-align: right;">Avg Input</th>
+                    <th style="text-align: right;">Avg Output</th>
+                    <th style="text-align: right;">I/O Ratio</th>
+                    <th style="text-align: right;">Cost/1K Tokens</th>
+                    <th style="text-align: right;">Avg Cost/Call</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td><strong>code</strong></td>
+                <td style="text-align: right;">2,668,994</td>
+                <td style="text-align: right;">360</td>
+                <td style="text-align: right;">270</td>
+                <td style="text-align: right;">1.33</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">$0.01</td>
+            </tr>
+        
+            <tr>
+                <td><strong>translate</strong></td>
+                <td style="text-align: right;">2,491,751</td>
+                <td style="text-align: right;">369</td>
+                <td style="text-align: right;">273</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">$0.01</td>
+            </tr>
+        
+            <tr>
+                <td><strong>chat</strong></td>
+                <td style="text-align: right;">2,495,419</td>
+                <td style="text-align: right;">363</td>
+                <td style="text-align: right;">270</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">$0.01</td>
+            </tr>
+        
+            <tr>
+                <td><strong>search</strong></td>
+                <td style="text-align: right;">2,488,476</td>
+                <td style="text-align: right;">364</td>
+                <td style="text-align: right;">269</td>
+                <td style="text-align: right;">1.36</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">$0.01</td>
+            </tr>
+        
+            <tr>
+                <td><strong>summarize</strong></td>
+                <td style="text-align: right;">2,480,878</td>
+                <td style="text-align: right;">366</td>
+                <td style="text-align: right;">272</td>
+                <td style="text-align: right;">1.35</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">$0.01</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Customer Archetype Efficiency</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer Archetype</th>
+                    <th style="text-align: right;">Calls</th>
+                    <th style="text-align: right;">Avg Tokens/Call</th>
+                    <th style="text-align: right;">I/O Ratio</th>
+                    <th style="text-align: right;">Cost/1K Tokens</th>
+                    <th style="text-align: right;">Efficiency Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td><strong>Heavy</strong></td>
+                <td style="text-align: right;">1,412,049</td>
+                <td style="text-align: right;">2206.5</td>
+                <td style="text-align: right;">1.32</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">89.2</td>
+            </tr>
+        
+            <tr>
+                <td><strong>Light</strong></td>
+                <td style="text-align: right;">8,531,375</td>
+                <td style="text-align: right;">299.8</td>
+                <td style="text-align: right;">1.39</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">89.2</td>
+            </tr>
+        
+            <tr>
+                <td><strong>Power</strong></td>
+                <td style="text-align: right;">2,682,094</td>
+                <td style="text-align: right;">874.9</td>
+                <td style="text-align: right;">1.34</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">89.4</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Wasteful Usage Patterns</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Detected 161,654 calls with inefficient token usage,
+            costing $13,568.39 in wasted spend.
+        </p>
+        
+            <div class="alert alert-warning">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <div class="alert-title">Expensive Simple Task</div>
+                    <div class="alert-description">158,510 calls detected with this issue</div>
+                </div>
+            </div>
+        
+            <div class="alert alert-warning">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <div class="alert-title">Excessive Input Tokens</div>
+                    <div class="alert-description">3,144 calls detected with this issue</div>
+                </div>
+            </div>
+        
+
+        <h2>Top Optimization Opportunities</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Potential savings from model optimization and better token management.
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Feature</th>
+                    <th>Current Model</th>
+                    <th style="text-align: right;">Calls</th>
+                    <th style="text-align: right;">Avg Tokens</th>
+                    <th style="text-align: right;">Current Cost</th>
+                    <th style="text-align: right;">Potential Savings</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>cust_0336</td>
+                <td>translate</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">917</td>
+                <td style="text-align: right;">478</td>
+                <td style="text-align: right;">$18.88</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$13.21</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0066</td>
+                <td>translate</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">917</td>
+                <td style="text-align: right;">435</td>
+                <td style="text-align: right;">$16.17</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$11.32</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0136</td>
+                <td>translate</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">786</td>
+                <td style="text-align: right;">499</td>
+                <td style="text-align: right;">$15.56</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$10.89</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0408</td>
+                <td>translate</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">655</td>
+                <td style="text-align: right;">484</td>
+                <td style="text-align: right;">$14.77</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$10.34</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0061</td>
+                <td>chat</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">655</td>
+                <td style="text-align: right;">485</td>
+                <td style="text-align: right;">$14.68</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$10.27</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0221</td>
+                <td>translate</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">655</td>
+                <td style="text-align: right;">468</td>
+                <td style="text-align: right;">$14.53</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$10.17</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0305</td>
+                <td>chat</td>
+                <td>bedrock-claude-opus</td>
+                <td style="text-align: right;">786</td>
+                <td style="text-align: right;">425</td>
+                <td style="text-align: right;">$14.52</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$10.16</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0449</td>
+                <td>translate</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">655</td>
+                <td style="text-align: right;">476</td>
+                <td style="text-align: right;">$13.56</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$9.50</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0207</td>
+                <td>translate</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">786</td>
+                <td style="text-align: right;">479</td>
+                <td style="text-align: right;">$13.52</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$9.47</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0102</td>
+                <td>chat</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">786</td>
+                <td style="text-align: right;">406</td>
+                <td style="text-align: right;">$13.33</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$9.33</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0332</td>
+                <td>chat</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">655</td>
+                <td style="text-align: right;">484</td>
+                <td style="text-align: right;">$13.04</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$9.13</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0305</td>
+                <td>chat</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">655</td>
+                <td style="text-align: right;">477</td>
+                <td style="text-align: right;">$12.84</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$8.99</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0243</td>
+                <td>translate</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">655</td>
+                <td style="text-align: right;">468</td>
+                <td style="text-align: right;">$12.70</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$8.89</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0320</td>
+                <td>chat</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">655</td>
+                <td style="text-align: right;">446</td>
+                <td style="text-align: right;">$12.63</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$8.84</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0481</td>
+                <td>chat</td>
+                <td>claude-opus-4</td>
+                <td style="text-align: right;">786</td>
+                <td style="text-align: right;">397</td>
+                <td style="text-align: right;">$12.55</td>
+                <td style="text-align: right; color: #43e97b; font-weight: bold;">$8.79</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Recommendations</h2>
+        <div class="recommendation">1. Detected 161,654 wasteful calls (1.3% of total) costing $13,568.39. Top issues: expensive_simple_task (158,510 calls), excessive_input_tokens (3,144 calls). Implement token usage guardrails and model selection logic.</div>
+<div class="recommendation">2. Identified 50 optimization opportunities. Top 10 could save $104.67/period by switching customers from premium to mid-tier models for simple tasks.</div>
+<div class="recommendation">3. Cost per 1K tokens varies 249.3x across models ($0.0002 for gemini-1.5-flash vs $0.0428 for azure-gpt-4). Implement intelligent model routing based on task complexity.</div>
+
+    
+
+        <div class="timestamp">
+            Generated: 2026-01-02 18:35:28 |
+            <a href="index.html" style="color: #2196f3; text-decoration: none;">View All Reports</a>
+        </div>
+    </div>
+
+    
+    <script>
+        // Cost per 1K tokens by model
+        new Chart(document.getElementById('modelCostChart'), {
+            type: 'bar',
+            data: {
+                labels: ['gpt-4', 'gpt-4o-mini', 'claude-sonnet-4', 'claude-3.5-sonnet', 'gpt-4-turbo', 'gpt-3.5-turbo', 'claude-opus-4', 'gpt-4o', 'claude-haiku-4', 'gemini-1.5-pro'],
+                datasets: [{
+                    label: 'Cost per 1K Tokens (USD)',
+                    data: [0.04279775058417117, 0.00034120892143859027, 0.008105344546187596, 0.008110986883518028, 0.01853217010493844, 0.0009255697544662667, 0.040380678196773497, 0.00924001119534663, 0.0021601224691889945, 0.0028469269920506648],
+                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(4);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Efficiency scores
+        new Chart(document.getElementById('efficiencyChart'), {
+            type: 'bar',
+            data: {
+                labels: ['gpt-4', 'gpt-4o-mini', 'claude-sonnet-4', 'claude-3.5-sonnet', 'gpt-4-turbo', 'gpt-3.5-turbo', 'claude-opus-4', 'gpt-4o', 'claude-haiku-4', 'gemini-1.5-pro'],
+                datasets: [{
+                    label: 'Efficiency Score',
+                    data: [69.00908873287662, 98.70188661793571, 93.27482484013566, 93.27865972195977, 85.99527232520825, 98.30109090117759, 70.64151619124475, 92.45653914725477, 97.42969733485131, 96.96229109043102],
+                    backgroundColor: 'rgba(67, 233, 123, 0.8)',
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+
+        // Feature cost comparison
+        new Chart(document.getElementById('featureCostChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['code', 'translate', 'chat', 'search', 'summarize'],
+                datasets: [{
+                    data: [0.01399327510595953, 0.01391284585983506, 0.013914196686048144, 0.013831939153061789, 0.01364979510438797],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(240, 147, 251, 0.8)',
+                        'rgba(79, 172, 254, 0.8)',
+                        'rgba(67, 233, 123, 0.8)',
+                        'rgba(250, 112, 154, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': $' + context.parsed.toFixed(4) + '/1K tokens';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    
+</body>
+</html>

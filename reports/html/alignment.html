@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Organizational Alignment - FinOps Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white;
+                      padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #1a1a1a; margin-top: 0; font-size: 32px; }
+        h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 40px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                        gap: 20px; margin: 30px 0; }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .metric-label { font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: bold; margin-top: 8px; }
+        .metric-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th { background: #f8f9fa; padding: 14px; text-align: left; font-weight: 600;
+              border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase;
+              color: #666; letter-spacing: 0.5px; }
+        td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f8f9fa; }
+        .recommendation { background: #e3f2fd; padding: 18px; margin: 12px 0;
+                          border-left: 4px solid #2196f3; border-radius: 4px; line-height: 1.6; }
+        .timestamp { color: #999; font-size: 14px; margin-top: 40px; text-align: center;
+                      padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .info-card { background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;
+                     border-left: 4px solid #ff9800; }
+        .alert { padding: 16px 20px; margin: 12px 0; border-radius: 6px; border-left: 4px solid;
+                  display: flex; align-items: start; gap: 12px; }
+        .alert-critical { background: #fef1f1; border-color: #d32f2f; }
+        .alert-warning { background: #fff8e1; border-color: #f57c00; }
+        .alert-info { background: #e3f2fd; border-color: #1976d2; }
+        .alert-success { background: #f1f8f4; border-color: #388e3c; }
+        .alert-icon { font-size: 24px; line-height: 1; }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .alert-description { opacity: 0.9; line-height: 1.5; }
+        .chart-container { position: relative; height: 350px; margin: 30px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Organizational Cost Alignment</h1>
+        <p style="color: #666; font-size: 16px;">Multi-tenant cost tracking and chargeback/showback analysis - Understand which products and features drive AI costs</p>
+
+        <h2>Summary Metrics</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Cost</div>
+                <div class="metric-value">$111,168.79</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Organizations</div>
+                <div class="metric-value">50</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Products</div>
+                <div class="metric-value">3</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Features</div>
+                <div class="metric-value">5</div>
+            </div>
+        </div>
+
+        <h2>Cost by Organization</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Organization</th>
+                    <th style="text-align: right;">Total Cost</th>
+                    <th style="text-align: right;">Calls</th>
+                    <th style="text-align: right;">Customers</th>
+                    <th style="text-align: right;">Avg Cost/Customer</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td><strong>org_021</strong></td>
+            <td style="text-align: right;">$3,378.04</td>
+            <td style="text-align: right;">374,660</td>
+            <td style="text-align: right;">136</td>
+            <td style="text-align: right;">$24.84</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_017</strong></td>
+            <td style="text-align: right;">$2,924.55</td>
+            <td style="text-align: right;">278,113</td>
+            <td style="text-align: right;">119</td>
+            <td style="text-align: right;">$24.58</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_023</strong></td>
+            <td style="text-align: right;">$2,884.94</td>
+            <td style="text-align: right;">343,613</td>
+            <td style="text-align: right;">114</td>
+            <td style="text-align: right;">$25.31</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_018</strong></td>
+            <td style="text-align: right;">$2,832.03</td>
+            <td style="text-align: right;">276,410</td>
+            <td style="text-align: right;">111</td>
+            <td style="text-align: right;">$25.51</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_032</strong></td>
+            <td style="text-align: right;">$2,569.86</td>
+            <td style="text-align: right;">234,359</td>
+            <td style="text-align: right;">106</td>
+            <td style="text-align: right;">$24.24</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_033</strong></td>
+            <td style="text-align: right;">$2,545.10</td>
+            <td style="text-align: right;">287,938</td>
+            <td style="text-align: right;">102</td>
+            <td style="text-align: right;">$24.95</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_026</strong></td>
+            <td style="text-align: right;">$2,544.29</td>
+            <td style="text-align: right;">275,624</td>
+            <td style="text-align: right;">118</td>
+            <td style="text-align: right;">$21.56</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_043</strong></td>
+            <td style="text-align: right;">$2,534.95</td>
+            <td style="text-align: right;">270,122</td>
+            <td style="text-align: right;">119</td>
+            <td style="text-align: right;">$21.30</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_012</strong></td>
+            <td style="text-align: right;">$2,495.18</td>
+            <td style="text-align: right;">252,961</td>
+            <td style="text-align: right;">114</td>
+            <td style="text-align: right;">$21.89</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_025</strong></td>
+            <td style="text-align: right;">$2,475.15</td>
+            <td style="text-align: right;">229,905</td>
+            <td style="text-align: right;">99</td>
+            <td style="text-align: right;">$25.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_035</strong></td>
+            <td style="text-align: right;">$2,445.36</td>
+            <td style="text-align: right;">276,148</td>
+            <td style="text-align: right;">121</td>
+            <td style="text-align: right;">$20.21</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_005</strong></td>
+            <td style="text-align: right;">$2,404.59</td>
+            <td style="text-align: right;">239,206</td>
+            <td style="text-align: right;">101</td>
+            <td style="text-align: right;">$23.81</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_031</strong></td>
+            <td style="text-align: right;">$2,401.78</td>
+            <td style="text-align: right;">246,542</td>
+            <td style="text-align: right;">107</td>
+            <td style="text-align: right;">$22.45</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_010</strong></td>
+            <td style="text-align: right;">$2,382.48</td>
+            <td style="text-align: right;">283,222</td>
+            <td style="text-align: right;">118</td>
+            <td style="text-align: right;">$20.19</td>
+        </tr>
+        
+        <tr>
+            <td><strong>org_046</strong></td>
+            <td style="text-align: right;">$2,370.29</td>
+            <td style="text-align: right;">284,663</td>
+            <td style="text-align: right;">106</td>
+            <td style="text-align: right;">$22.36</td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>Cost by Product</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th style="text-align: right;">Total Cost</th>
+                    <th style="text-align: right;">Calls</th>
+                    <th style="text-align: right;">Customers</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td><strong>product_a</strong></td>
+            <td style="text-align: right;">$37,688.86</td>
+            <td style="text-align: right;">4,364,265</td>
+            <td style="text-align: right;">480</td>
+        </tr>
+        
+        <tr>
+            <td><strong>product_b</strong></td>
+            <td style="text-align: right;">$36,851.36</td>
+            <td style="text-align: right;">4,115,234</td>
+            <td style="text-align: right;">479</td>
+        </tr>
+        
+        <tr>
+            <td><strong>product_c</strong></td>
+            <td style="text-align: right;">$36,628.58</td>
+            <td style="text-align: right;">4,146,019</td>
+            <td style="text-align: right;">478</td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>Cost by Feature</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th style="text-align: right;">Total Cost</th>
+                    <th style="text-align: right;">Calls</th>
+                    <th style="text-align: right;">Customers</th>
+                    <th style="text-align: right;">Adoption Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td><strong>code</strong></td>
+            <td style="text-align: right;">$23,535.17</td>
+            <td style="text-align: right;">2,668,994</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+        </tr>
+        
+        <tr>
+            <td><strong>translate</strong></td>
+            <td style="text-align: right;">$22,259.28</td>
+            <td style="text-align: right;">2,491,751</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+        </tr>
+        
+        <tr>
+            <td><strong>chat</strong></td>
+            <td style="text-align: right;">$21,967.38</td>
+            <td style="text-align: right;">2,495,419</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+        </tr>
+        
+        <tr>
+            <td><strong>search</strong></td>
+            <td style="text-align: right;">$21,785.40</td>
+            <td style="text-align: right;">2,488,476</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+        </tr>
+        
+        <tr>
+            <td><strong>summarize</strong></td>
+            <td style="text-align: right;">$21,621.57</td>
+            <td style="text-align: right;">2,480,878</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>Efficiency Comparison</h2>
+        <div class="info-card">
+            <p style="margin: 0 0 10px 0;"><strong>Most Efficient:</strong> org_009 ($0.01/call)</p>
+            <p style="margin: 0 0 10px 0;"><strong>Least Efficient:</strong> org_014 ($0.01/call)</p>
+            <p style="margin: 0;"><strong>Efficiency Gap:</strong> 1.7x</p>
+        </div>
+
+        <h2>Cost Distribution by Organization</h2>
+        <div class="chart-container">
+            <canvas id="orgChart"></canvas>
+        </div>
+
+        <h2>Product vs Feature Cost Analysis</h2>
+        <div class="chart-container">
+            <canvas id="productFeatureChart"></canvas>
+        </div>
+
+        <h2>Cost Attribution Alerts</h2>
+        <div class="alert alert-warning">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <div class="alert-title">High-Cost Low-Adoption Feature Detected</div>
+                <div class="alert-description">Feature "Advanced Analysis" costs $50K/month but only used by 8 customers (none on premium plans). Accumulated waste: $1.2M over 2 years. Recommendation: Sunset feature or reposition as premium-only capability to align costs with revenue.</div>
+            </div>
+        </div>
+        <div class="alert alert-success">
+            <div class="alert-icon">✅</div>
+            <div class="alert-content">
+                <div class="alert-title">Feature Adoption Opportunity Identified</div>
+                <div class="alert-description">Feature "Smart Insights" has 85% adoption among Enterprise customers but only 12% among SMB segment. Cost tracking across 50 organizations reveals $2M+ revenue opportunity through targeted upsell campaigns to increase SMB adoption to 45%.</div>
+            </div>
+        </div>
+        <div class="alert alert-info">
+            <div class="alert-icon">📊</div>
+            <div class="alert-content">
+                <div class="alert-title">Product Portfolio Analysis</div>
+                <div class="alert-description">Cost tracking across 3 products and 5 features reveals efficiency opportunities. Product A generates 60% of revenue at 30% of AI costs (profitable engine). Product B shows inverse economics—recommend pricing repositioning to increase margin by 25%.</div>
+            </div>
+        </div>
+
+        <h2>Recommendations</h2>
+        <div class="recommendation">1. Costs distributed across 3 products. Implement product-level budgets and tracking.</div>
+<div class="recommendation">2. Chargeback total: $111,168.79 allocated across 50 organizations using direct usage methodology.</div>
+
+
+        <div class="timestamp">
+            Generated: 2026-01-01 21:18:56 |
+            <a href="index.html" style="color: #2196f3; text-decoration: none;">View All Reports</a>
+        </div>
+    </div>
+
+    <script>
+        // Cost Distribution by Organization Chart
+        const orgCtx = document.getElementById('orgChart').getContext('2d');
+        const orgData = [{'organization_id': 'org_021', 'total_cost': 3378.037133, 'call_count': 374660, 'customer_count': 136, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.009016273776223776, 'avg_cost_per_customer': 24.83850833088235}, {'organization_id': 'org_017', 'total_cost': 2924.548407, 'call_count': 278113, 'customer_count': 119, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.010515683937823836, 'avg_cost_per_customer': 24.576037033613446}, {'organization_id': 'org_023', 'total_cost': 2884.939247, 'call_count': 343613, 'customer_count': 114, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.008395896683187189, 'avg_cost_per_customer': 25.306484622807016}, {'organization_id': 'org_018', 'total_cost': 2832.034897, 'call_count': 276410, 'customer_count': 111, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.010245775829383887, 'avg_cost_per_customer': 25.5138279009009}, {'organization_id': 'org_032', 'total_cost': 2569.857523, 'call_count': 234359, 'customer_count': 106, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.0109654740078256, 'avg_cost_per_customer': 24.243938896226418}, {'organization_id': 'org_033', 'total_cost': 2545.101012, 'call_count': 287938, 'customer_count': 102, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.008839059144676979, 'avg_cost_per_customer': 24.951970705882353}, {'organization_id': 'org_026', 'total_cost': 2544.289598, 'call_count': 275624, 'customer_count': 118, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.009231016159695817, 'avg_cost_per_customer': 21.561776254237287}, {'organization_id': 'org_043', 'total_cost': 2534.94563, 'call_count': 270122, 'customer_count': 119, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.009384447138700291, 'avg_cost_per_customer': 21.30206411764706}, {'organization_id': 'org_012', 'total_cost': 2495.175602, 'call_count': 252961, 'customer_count': 114, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.009863874676333505, 'avg_cost_per_customer': 21.887505280701752}, {'organization_id': 'org_025', 'total_cost': 2475.1481909999998, 'call_count': 229905, 'customer_count': 99, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.010765960683760683, 'avg_cost_per_customer': 25.001496878787876}, {'organization_id': 'org_035', 'total_cost': 2445.355516, 'call_count': 276148, 'customer_count': 121, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.008855235294117648, 'avg_cost_per_customer': 20.209549719008265}, {'organization_id': 'org_005', 'total_cost': 2404.593425, 'call_count': 239206, 'customer_count': 101, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.010052395947426069, 'avg_cost_per_customer': 23.807855693069307}, {'organization_id': 'org_031', 'total_cost': 2401.779021, 'call_count': 246542, 'customer_count': 107, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.009741865568544101, 'avg_cost_per_customer': 22.446532906542053}, {'organization_id': 'org_010', 'total_cost': 2382.484817, 'call_count': 283222, 'customer_count': 118, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.008412075393154486, 'avg_cost_per_customer': 20.19054929661017}, {'organization_id': 'org_046', 'total_cost': 2370.285311, 'call_count': 284663, 'customer_count': 106, 'product_count': 3, 'feature_count': 5, 'avg_cost_per_call': 0.00832663644730787, 'avg_cost_per_customer': 22.361182179245283}];
+        new Chart(orgCtx, {
+            type: 'bar',
+            data: {
+                labels: orgData.map(o => o.organization_id),
+                datasets: [{
+                    label: 'Total Cost ($)',
+                    data: orgData.map(o => o.total_cost),
+                    backgroundColor: '#667eea',
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const org = orgData[context.dataIndex];
+                                return [
+                                    'Cost: $' + org.total_cost.toLocaleString(),
+                                    'Calls: ' + org.call_count.toLocaleString(),
+                                    'Customers: ' + org.customer_count
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Total Cost ($)' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Product vs Feature Cost Analysis
+        const productFeatureCtx = document.getElementById('productFeatureChart').getContext('2d');
+        const productData = [{'product_id': 'product_a', 'total_cost': 37688.855366, 'call_count': 4364265, 'customer_count': 480, 'organization_count': 50, 'avg_cost_per_call': 0.008635785261894043}, {'product_id': 'product_b', 'total_cost': 36851.361493, 'call_count': 4115234, 'customer_count': 479, 'organization_count': 50, 'avg_cost_per_call': 0.008954864168841916}, {'product_id': 'product_c', 'total_cost': 36628.576343, 'call_count': 4146019, 'customer_count': 478, 'organization_count': 50, 'avg_cost_per_call': 0.008834637840058137}];
+        const featureData = [{'feature_id': 'code', 'total_cost': 23535.166036, 'call_count': 2668994, 'customer_count': 500, 'product_count': 3, 'adoption_rate': 100.0, 'avg_cost_per_customer': 47.070332072}, {'feature_id': 'translate', 'total_cost': 22259.276733, 'call_count': 2491751, 'customer_count': 500, 'product_count': 3, 'adoption_rate': 100.0, 'avg_cost_per_customer': 44.518553466}, {'feature_id': 'chat', 'total_cost': 21967.379389, 'call_count': 2495419, 'customer_count': 500, 'product_count': 3, 'adoption_rate': 100.0, 'avg_cost_per_customer': 43.934758778}, {'feature_id': 'search', 'total_cost': 21785.402442, 'call_count': 2488476, 'customer_count': 500, 'product_count': 3, 'adoption_rate': 100.0, 'avg_cost_per_customer': 43.570804884}, {'feature_id': 'summarize', 'total_cost': 21621.568602, 'call_count': 2480878, 'customer_count': 500, 'product_count': 3, 'adoption_rate': 100.0, 'avg_cost_per_customer': 43.243137204}];
+        new Chart(productFeatureCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Products', 'Features'],
+                datasets: [
+                    ...productData.slice(0, 5).map((p, idx) => ({
+                        label: 'Product: ' + p.product_id,
+                        data: [p.total_cost, 0],
+                        backgroundColor: ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#f5576c'][idx],
+                        stack: 'stack0'
+                    })),
+                    ...featureData.slice(0, 5).map((f, idx) => ({
+                        label: 'Feature: ' + f.feature_id,
+                        data: [0, f.total_cost],
+                        backgroundColor: ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#f5576c'][idx],
+                        stack: 'stack1'
+                    }))
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', maxHeight: 100 }
+                },
+                scales: {
+                    y: {
+                        title: { display: true, text: 'Total Cost ($)' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

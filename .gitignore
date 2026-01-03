@@ -20,17 +20,17 @@ wheels/
 .installed.cfg
 *.egg
 
-# Generated data
-# Note: simulated_calls.csv is committed for GitHub Pages deployment
+# Generated data (local only - too large for git)
 src/data/*.csv
-!src/data/simulated_calls.csv
 
-# Generated reports (exclude from git, generated during Amplify build)
-reports/html/*.html
-reports/html/manifest.json
+# Generated reports (committed for GitHub Pages)
+# Reports are generated locally and committed to git
+src/reports/html/*.html
+src/reports/html/manifest.json
 
-# Keep reports directory structure
-!reports/html/.gitkeep
+# Keep directory structures
+!src/data/.gitkeep
+!src/reports/html/.gitkeep
 
 # IDE
 .vscode/

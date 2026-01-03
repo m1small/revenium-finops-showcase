@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Feature Economics - FinOps Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white;
+                      padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #1a1a1a; margin-top: 0; font-size: 32px; }
+        h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 40px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                        gap: 20px; margin: 30px 0; }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .metric-label { font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: bold; margin-top: 8px; }
+        .metric-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th { background: #f8f9fa; padding: 14px; text-align: left; font-weight: 600;
+              border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase;
+              color: #666; letter-spacing: 0.5px; }
+        td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f8f9fa; }
+        .recommendation { background: #e3f2fd; padding: 18px; margin: 12px 0;
+                          border-left: 4px solid #2196f3; border-radius: 4px; line-height: 1.6; }
+        .timestamp { color: #999; font-size: 14px; margin-top: 40px; text-align: center;
+                      padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .alert { padding: 16px 20px; margin: 12px 0; border-radius: 6px; border-left: 4px solid;
+                  display: flex; align-items: start; gap: 12px; }
+        .alert-critical { background: #fef1f1; border-color: #d32f2f; }
+        .alert-warning { background: #fff8e1; border-color: #f57c00; }
+        .alert-info { background: #e3f2fd; border-color: #1976d2; }
+        .alert-success { background: #f1f8f4; border-color: #388e3c; }
+        .alert-icon { font-size: 24px; line-height: 1; }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .alert-description { opacity: 0.9; line-height: 1.5; }
+        .chart-container { position: relative; height: 350px; margin: 30px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Feature Economics & ROI</h1>
+        <p style="color: #666; font-size: 16px;">Feature-level cost analysis and investment prioritization - Invest in winners, sunset losers, optimize everything else</p>
+
+        <h2>Summary Metrics</h2>
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Cost</div>
+                <div class="metric-value">$111,168.79</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Features</div>
+                <div class="metric-value">5</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Avg Cost/Feature</div>
+                <div class="metric-value">$22,233.76</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Customers</div>
+                <div class="metric-value">500</div>
+            </div>
+        </div>
+
+        <h2>Feature Cost Breakdown</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th style="text-align: right;">Total Cost</th>
+                    <th style="text-align: right;">Calls</th>
+                    <th style="text-align: right;">Customers</th>
+                    <th style="text-align: right;">Adoption %</th>
+                    <th style="text-align: right;">Cost/Customer</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td><strong>code</strong></td>
+            <td style="text-align: right;">$23,535.17</td>
+            <td style="text-align: right;">2,668,994</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+            <td style="text-align: right;">$47.07</td>
+        </tr>
+        
+        <tr>
+            <td><strong>translate</strong></td>
+            <td style="text-align: right;">$22,259.28</td>
+            <td style="text-align: right;">2,491,751</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+            <td style="text-align: right;">$44.52</td>
+        </tr>
+        
+        <tr>
+            <td><strong>chat</strong></td>
+            <td style="text-align: right;">$21,967.38</td>
+            <td style="text-align: right;">2,495,419</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+            <td style="text-align: right;">$43.93</td>
+        </tr>
+        
+        <tr>
+            <td><strong>search</strong></td>
+            <td style="text-align: right;">$21,785.40</td>
+            <td style="text-align: right;">2,488,476</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+            <td style="text-align: right;">$43.57</td>
+        </tr>
+        
+        <tr>
+            <td><strong>summarize</strong></td>
+            <td style="text-align: right;">$21,621.57</td>
+            <td style="text-align: right;">2,480,878</td>
+            <td style="text-align: right;">500</td>
+            <td style="text-align: right;">100.0%</td>
+            <td style="text-align: right;">$43.24</td>
+        </tr>
+        
+            </tbody>
+        </table>
+
+        <h2>Investment Matrix</h2>
+        <div class="metric-grid">
+            <div class="metric-card" style="background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);">
+                <div class="metric-label">Invest</div>
+                <div class="metric-value">2</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);">
+                <div class="metric-label">Maintain</div>
+                <div class="metric-value">3</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);">
+                <div class="metric-label">Optimize</div>
+                <div class="metric-value">0</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #f44336 0%, #D32F2F 100%);">
+                <div class="metric-label">Sunset</div>
+                <div class="metric-value">0</div>
+            </div>
+        </div>
+
+        <h2>Feature Cost vs Adoption Analysis</h2>
+        <div class="chart-container">
+            <canvas id="featureChart"></canvas>
+        </div>
+
+        <h2>Investment Matrix Distribution</h2>
+        <div class="chart-container">
+            <canvas id="matrixChart"></canvas>
+        </div>
+
+        <h2>Feature Portfolio Alerts</h2>
+        <div class="alert alert-critical">
+            <div class="alert-icon">🚨</div>
+            <div class="alert-content">
+                <div class="alert-title">Low-Adoption High-Cost Features Detected</div>
+                <div class="alert-description">"Advanced AI Analytics" feature showing 3% adoption at $30K/month cost. Total waste over 12 months: $560K on unwanted capability. 0 features identified for retirement. Immediate action: deprecate low-value features and reallocate $25K/month budget to high-adoption capabilities.</div>
+            </div>
+        </div>
+        <div class="alert alert-success">
+            <div class="alert-icon">⭐</div>
+            <div class="alert-content">
+                <div class="alert-title">High-Value Feature Opportunity</div>
+                <div class="alert-description">"Smart Scheduling" feature showing 78% adoption at $0.50/customer/month cost. 2 features worth expanding. Recommendation: make high-adoption features centerpiece of marketing and product development. Projected outcome: 40% increase in new signups, expansion to 92% adoption.</div>
+            </div>
+        </div>
+        <div class="alert alert-warning">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <div class="alert-title">Feature Portfolio Concentration Risk</div>
+                <div class="alert-description">Analysis of 5 features reveals 80% of usage concentrated in 3 features. Feature graveyard scenario: 12 underutilized features spreading AI budget thin. Recommendation: focus resources on excellence in high-value features rather than mediocrity across all features. Potential cost reduction: 30%.</div>
+            </div>
+        </div>
+
+        <h2>Recommendations</h2>
+        <div class="recommendation">1. Invest in code - 100% adoption, $23,535.17 cost. High usage and high value - core feature</div>
+<div class="recommendation">2. Bundle opportunity: chat + code used together by 100% of customers</div>
+<div class="recommendation">3. Top 3 features account for 61% of costs. Optimize these for maximum impact.</div>
+
+
+        <div class="timestamp">
+            Generated: 2026-01-02 12:35:07 |
+            <a href="index.html" style="color: #2196f3; text-decoration: none;">View All Reports</a>
+        </div>
+    </div>
+
+    <script>
+        // Feature Cost vs Adoption Scatter Chart
+        const featureCtx = document.getElementById('featureChart').getContext('2d');
+        const featureData = [{'feature_id': 'code', 'total_cost': 23535.166036, 'call_count': 2668994, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 47.070332072, 'avg_cost_per_call': 0.008817991361539216}, {'feature_id': 'translate', 'total_cost': 22259.276733, 'call_count': 2491751, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 44.518553466, 'avg_cost_per_call': 0.008933186635823563}, {'feature_id': 'chat', 'total_cost': 21967.379389, 'call_count': 2495419, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 43.934758778, 'avg_cost_per_call': 0.008803082524017009}, {'feature_id': 'search', 'total_cost': 21785.402442, 'call_count': 2488476, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 43.570804884, 'avg_cost_per_call': 0.008754515792798484}, {'feature_id': 'summarize', 'total_cost': 21621.568602, 'call_count': 2480878, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 43.243137204, 'avg_cost_per_call': 0.008715288942866195}];
+        new Chart(featureCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Features',
+                    data: featureData.map(f => ({
+                        x: f.adoption_rate,
+                        y: f.total_cost,
+                        label: f.feature_id
+                    })),
+                    backgroundColor: featureData.map(f =>
+                        f.adoption_rate > 70 ? '#4CAF50' :
+                        f.adoption_rate > 30 ? '#FF9800' : '#f44336'
+                    ),
+                    pointRadius: 8,
+                    pointHoverRadius: 12
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return [
+                                    'Feature: ' + context.raw.label,
+                                    'Adoption: ' + context.raw.x.toFixed(1) + '%',
+                                    'Cost: $' + context.raw.y.toLocaleString()
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Adoption Rate (%)' },
+                        min: 0,
+                        max: 100
+                    },
+                    y: {
+                        title: { display: true, text: 'Total Cost ($)' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Investment Matrix Distribution Chart
+        const matrixCtx = document.getElementById('matrixChart').getContext('2d');
+        const matrixData = {'invest': [{'feature_id': 'code', 'total_cost': 23535.166036, 'call_count': 2668994, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 47.070332072, 'avg_cost_per_call': 0.008817991361539216, 'strategy': 'Invest', 'rationale': 'High usage and high value - core feature'}, {'feature_id': 'translate', 'total_cost': 22259.276733, 'call_count': 2491751, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 44.518553466, 'avg_cost_per_call': 0.008933186635823563, 'strategy': 'Invest', 'rationale': 'High usage and high value - core feature'}], 'maintain': [{'feature_id': 'chat', 'total_cost': 21967.379389, 'call_count': 2495419, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 43.934758778, 'avg_cost_per_call': 0.008803082524017009, 'strategy': 'Maintain', 'rationale': 'Popular but low cost - efficient feature'}, {'feature_id': 'search', 'total_cost': 21785.402442, 'call_count': 2488476, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 43.570804884, 'avg_cost_per_call': 0.008754515792798484, 'strategy': 'Maintain', 'rationale': 'Popular but low cost - efficient feature'}, {'feature_id': 'summarize', 'total_cost': 21621.568602, 'call_count': 2480878, 'customer_count': 500, 'adoption_rate': 100.0, 'cost_per_customer': 43.243137204, 'avg_cost_per_call': 0.008715288942866195, 'strategy': 'Maintain', 'rationale': 'Popular but low cost - efficient feature'}], 'optimize': [], 'sunset': []};
+        new Chart(matrixCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Invest', 'Maintain', 'Optimize', 'Sunset'],
+                datasets: [{
+                    data: [
+                        matrixData.invest.length,
+                        matrixData.maintain.length,
+                        matrixData.optimize.length,
+                        matrixData.sunset.length
+                    ],
+                    backgroundColor: ['#4CAF50', '#2196F3', '#FF9800', '#f44336'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const category = context.label;
+                                const count = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((count / total) * 100).toFixed(1);
+                                return category + ': ' + count + ' features (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

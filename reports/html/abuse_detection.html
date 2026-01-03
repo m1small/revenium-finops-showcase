@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Multi-Tenant Cost Anomaly & Abuse Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white;
+                      padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #1a1a1a; margin-top: 0; font-size: 32px; }
+        h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 40px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                        gap: 20px; margin: 30px 0; }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .metric-label { font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: bold; margin-top: 8px; }
+        .metric-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th { background: #f8f9fa; padding: 14px; text-align: left; font-weight: 600;
+              border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase;
+              color: #666; letter-spacing: 0.5px; }
+        td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f8f9fa; }
+        .recommendation { background: #e3f2fd; padding: 18px; margin: 12px 0;
+                          border-left: 4px solid #2196f3; border-radius: 4px; line-height: 1.6; }
+        .timestamp { color: #999; font-size: 14px; margin-top: 40px; text-align: center;
+                      padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .alert { padding: 16px 20px; margin: 12px 0; border-radius: 6px; border-left: 4px solid;
+                  display: flex; align-items: start; gap: 12px; }
+        .alert-critical { background: #fef1f1; border-color: #d32f2f; }
+        .alert-warning { background: #fff8e1; border-color: #f57c00; }
+        .alert-info { background: #e3f2fd; border-color: #1976d2; }
+        .alert-success { background: #f1f8f4; border-color: #388e3c; }
+        .alert-icon { font-size: 24px; line-height: 1; }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .alert-description { opacity: 0.9; line-height: 1.5; }
+        .chart-container { position: relative; height: 350px; margin: 30px 0; }
+    
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <h1>🔒 Multi-Tenant Cost Anomaly & Abuse Detection</h1>
+        <p style="color: #666; font-size: 16px; margin-top: -10px;">
+            Security monitoring, abuse detection, and cost protection analysis
+        </p>
+
+        <h2>Summary Metrics</h2>
+        
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Calls Analyzed</div>
+                <div class="metric-value">1,642</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="metric-label">Cost Anomalies</div>
+                <div class="metric-value">53</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #d32f2f 0%, #f57c00 100%);">
+                <div class="metric-label">Estimated Waste</div>
+                <div class="metric-value">$3.81</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%);">
+                <div class="metric-label">Tier Gaming Cases</div>
+                <div class="metric-value">0</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="metric-label">Security Flags</div>
+                <div class="metric-value">0</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="metric-label">Anomaly Rate</div>
+                <div class="metric-value">4.26%</div>
+            </div>
+        </div>
+    
+
+        <h2>Security Flags</h2>
+        
+            <div class="alert alert-success">
+                <div class="alert-icon">✅</div>
+                <div class="alert-content">
+                    <div class="alert-title">No Critical Security Flags</div>
+                    <div class="alert-description">System monitoring shows normal usage patterns.</div>
+                </div>
+            </div>
+        
+
+        <h2>Flag Distribution</h2>
+        <div class="chart-container">
+            <canvas id="flagsChart"></canvas>
+        </div>
+
+        <h2>Abuse Types Overview</h2>
+        <div class="chart-container">
+            <canvas id="abuseTypesChart"></canvas>
+        </div>
+
+        <h2>Cost Anomalies</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Detected 53 anomalous calls with
+            $3.81 in estimated waste.
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer ID</th>
+                    <th>Model</th>
+                    <th>Feature</th>
+                    <th style="text-align: right;">Cost (Anomalous)</th>
+                    <th style="text-align: right;">Tokens</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>cust_0294</td>
+                <td>gpt-4</td>
+                <td>translate</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.13</td>
+                <td style="text-align: right;">2,975</td>
+                <td style="font-size: 12px;">2025-12-31T14:37:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0433</td>
+                <td>claude-opus-4</td>
+                <td>translate</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.12</td>
+                <td style="text-align: right;">2,986</td>
+                <td style="font-size: 12px;">2026-01-01T11:13:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0061</td>
+                <td>claude-opus-4</td>
+                <td>chat</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.12</td>
+                <td style="text-align: right;">2,220</td>
+                <td style="font-size: 12px;">2025-12-31T18:10:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0110</td>
+                <td>gpt-4</td>
+                <td>summarize</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.12</td>
+                <td style="text-align: right;">2,571</td>
+                <td style="font-size: 12px;">2026-01-01T10:50:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0395</td>
+                <td>claude-opus-4</td>
+                <td>translate</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.12</td>
+                <td style="text-align: right;">2,947</td>
+                <td style="font-size: 12px;">2025-12-31T14:37:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0097</td>
+                <td>azure-gpt-4</td>
+                <td>chat</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.12</td>
+                <td style="text-align: right;">2,756</td>
+                <td style="font-size: 12px;">2026-01-01T02:31:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0203</td>
+                <td>claude-opus-4</td>
+                <td>code</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.12</td>
+                <td style="text-align: right;">2,478</td>
+                <td style="font-size: 12px;">2025-12-31T17:05:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0133</td>
+                <td>bedrock-claude-opus</td>
+                <td>search</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.12</td>
+                <td style="text-align: right;">2,791</td>
+                <td style="font-size: 12px;">2025-12-31T20:40:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0025</td>
+                <td>bedrock-claude-opus</td>
+                <td>search</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.11</td>
+                <td style="text-align: right;">2,673</td>
+                <td style="font-size: 12px;">2026-01-01T04:40:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0193</td>
+                <td>gpt-4</td>
+                <td>code</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.11</td>
+                <td style="text-align: right;">2,382</td>
+                <td style="font-size: 12px;">2025-12-31T16:10:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0413</td>
+                <td>gpt-4</td>
+                <td>chat</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.11</td>
+                <td style="text-align: right;">2,153</td>
+                <td style="font-size: 12px;">2025-12-31T17:46:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0228</td>
+                <td>azure-gpt-4</td>
+                <td>search</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.11</td>
+                <td style="text-align: right;">2,709</td>
+                <td style="font-size: 12px;">2025-12-31T14:33:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0455</td>
+                <td>gpt-4</td>
+                <td>code</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.11</td>
+                <td style="text-align: right;">2,755</td>
+                <td style="font-size: 12px;">2026-01-01T06:55:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0300</td>
+                <td>gpt-4</td>
+                <td>code</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.11</td>
+                <td style="text-align: right;">2,405</td>
+                <td style="font-size: 12px;">2025-12-31T22:05:23</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0247</td>
+                <td>gpt-4</td>
+                <td>chat</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">$0.11</td>
+                <td style="text-align: right;">2,421</td>
+                <td style="font-size: 12px;">2026-01-01T07:38:23</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Usage Spikes</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customers with sudden 10x+ usage increases indicating potential abuse or automation.
+        </p>
+        <p style='color: #666;'>No unusual usage spikes detected.</p>
+
+        <h2>Tier Gaming Detection</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customers potentially exploiting lower-tier pricing for enterprise-level usage.
+        </p>
+        <p style='color: #666;'>No tier gaming detected.</p>
+
+        <h2>Concurrent Usage Abuse</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Accounts showing excessive concurrent API calls (potential scripted abuse).
+        </p>
+        <p style='color: #666;'>No concurrent abuse detected.</p>
+
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #333;">Suspicious Pattern Detection</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div>
+                    <strong>Batch Processing Abuse:</strong><br>
+                    <span style="font-size: 24px; color: #666;">
+                        0
+                    </span>
+                    <span style="color: #666; font-size: 13px;"> cases</span>
+                </div>
+                <div>
+                    <strong>Off-Hours Spikes:</strong><br>
+                    <span style="font-size: 24px; color: #f57c00;">
+                        8
+                    </span>
+                    <span style="color: #666; font-size: 13px;"> cases</span>
+                </div>
+                <div>
+                    <strong>Model Hopping:</strong><br>
+                    <span style="font-size: 24px; color: #666;">
+                        0
+                    </span>
+                    <span style="color: #666; font-size: 13px;"> cases</span>
+                </div>
+                <div>
+                    <strong>Feature Spam:</strong><br>
+                    <span style="font-size: 24px; color: #666;">
+                        0
+                    </span>
+                    <span style="color: #666; font-size: 13px;"> cases</span>
+                </div>
+            </div>
+        </div>
+    
+
+        <h2>Statistical Outliers</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customers with usage patterns significantly deviating from normal distribution.
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer ID</th>
+                    <th style="text-align: right;">Outlier Score</th>
+                    <th style="text-align: right;">Call Count</th>
+                    <th style="text-align: right;">Total Cost</th>
+                    <th style="text-align: right;">Avg Latency</th>
+                    <th>Outlier Reasons</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>cust_0408</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">7</td>
+                <td style="text-align: right;">$0.27</td>
+                <td style="text-align: right;">3105 ms</td>
+                <td style="font-size: 12px;">cost_8x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0294</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$0.27</td>
+                <td style="text-align: right;">2954 ms</td>
+                <td style="font-size: 12px;">cost_8x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0193</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">6</td>
+                <td style="text-align: right;">$0.16</td>
+                <td style="text-align: right;">2676 ms</td>
+                <td style="font-size: 12px;">cost_5x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0064</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">8</td>
+                <td style="text-align: right;">$0.20</td>
+                <td style="text-align: right;">2788 ms</td>
+                <td style="font-size: 12px;">cost_6x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0300</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$0.18</td>
+                <td style="text-align: right;">4698 ms</td>
+                <td style="font-size: 12px;">cost_5x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0228</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$0.20</td>
+                <td style="text-align: right;">2742 ms</td>
+                <td style="font-size: 12px;">cost_6x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0203</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">6</td>
+                <td style="text-align: right;">$0.19</td>
+                <td style="text-align: right;">3536 ms</td>
+                <td style="font-size: 12px;">cost_6x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0433</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">6</td>
+                <td style="text-align: right;">$0.25</td>
+                <td style="text-align: right;">3254 ms</td>
+                <td style="font-size: 12px;">cost_8x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0413</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$0.18</td>
+                <td style="text-align: right;">3097 ms</td>
+                <td style="font-size: 12px;">cost_5x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0025</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.16</td>
+                <td style="text-align: right;">3529 ms</td>
+                <td style="font-size: 12px;">cost_5x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0076</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.16</td>
+                <td style="text-align: right;">2976 ms</td>
+                <td style="font-size: 12px;">cost_5x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0245</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">2</td>
+                <td style="text-align: right;">$0.18</td>
+                <td style="text-align: right;">3032 ms</td>
+                <td style="font-size: 12px;">cost_6x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0133</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">2</td>
+                <td style="text-align: right;">$0.17</td>
+                <td style="text-align: right;">1898 ms</td>
+                <td style="font-size: 12px;">cost_5x_avg</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0455</td>
+                <td style="text-align: right; color: #d32f2f; font-weight: bold;">50</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.24</td>
+                <td style="text-align: right;">4047 ms</td>
+                <td style="font-size: 12px;">cost_7x_avg</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Recommendations</h2>
+        <div class="recommendation">1. 🔴 CRITICAL: 53 cost anomalies detected with $3.81 in estimated waste. Implement real-time cost monitoring and automatic circuit breakers.</div>
+
+    
+
+        <div class="timestamp">
+            Generated: 2026-01-01 14:50:13 |
+            <a href="index.html" style="color: #2196f3; text-decoration: none;">View All Reports</a>
+        </div>
+    </div>
+
+    
+    <script>
+        // Security flags by severity
+        var criticalCount = 0;
+        var highCount = 0;
+        var mediumCount = 0;
+        var lowCount = 0;
+
+        new Chart(document.getElementById('flagsChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Critical', 'High', 'Medium', 'Low'],
+                datasets: [{
+                    label: 'Security Flags by Severity',
+                    data: [criticalCount, highCount, mediumCount, lowCount],
+                    backgroundColor: [
+                        'rgba(211, 47, 47, 0.8)',
+                        'rgba(245, 124, 0, 0.8)',
+                        'rgba(255, 152, 0, 0.8)',
+                        'rgba(79, 172, 254, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Abuse types distribution
+        new Chart(document.getElementById('abuseTypesChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Cost Anomalies', 'Usage Spikes', 'Tier Gaming', 'Concurrent Abuse'],
+                datasets: [{
+                    data: [
+                        53,
+                        0,
+                        0,
+                        0
+                    ],
+                    backgroundColor: [
+                        'rgba(211, 47, 47, 0.8)',
+                        'rgba(245, 124, 0, 0.8)',
+                        'rgba(255, 152, 0, 0.8)',
+                        'rgba(102, 126, 234, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }
+                }
+            }
+        });
+    </script>
+    
+</body>
+</html>

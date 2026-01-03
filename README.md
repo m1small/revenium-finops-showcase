@@ -200,26 +200,26 @@ python3 serve.py
 
 ### GitHub Pages Static Hosting
 
-The application automatically deploys to GitHub Pages via GitHub Actions when code is pushed to the `main` branch.
+The showcase is deployed to GitHub Pages using a simple static file approach.
+
+**Local Generation and Deployment:**
+1. Generate data locally: `cd src && python3 run_all_simulators.py 2048`
+2. Run analyzers locally: `python3 run_all_analyzers.py`
+3. Generate static index: `cd ../viewer && python3 -c "import sys; sys.path.insert(0, '.'); from serve import StatusViewerServer; StatusViewerServer(report_dir='../reports/html').create_status_page('../reports/html/index.html', static_mode=True)"`
+4. Commit reports: `git add reports/html/ && git commit -m "Update reports" && git push`
+5. GitHub Actions automatically deploys the updated reports to GitHub Pages
 
 **Deployment Process:**
-1. GitHub Actions workflow (`.github/workflows/deploy-github-pages.yml`) triggers on push to main
-2. Workflow executes:
-   - Generates 2GB CSV dataset (via `run_all_simulators.py 2048`)
-   - Runs all 13 analyzers (via `run_all_analyzers.py`)
-   - Creates static index.html for GitHub Pages hosting
-3. Deploys `reports/html/` directory to GitHub Pages
+- Reports are generated locally (no resource constraints)
+- HTML files are committed to git in `reports/html/`
+- GitHub Actions workflow deploys committed files to GitHub Pages
+- No build step required - just static file hosting
 
-**Build artifacts:** `reports/html/` (all HTML reports + index)
-**Build time:** ~15-20 minutes
-
-**Setup Requirements:**
-1. Enable GitHub Pages in repository settings
-2. Set source to "GitHub Actions"
-3. Workflow will run automatically on push to main
-
-**Manual Deployment:**
-You can also trigger deployment manually via the GitHub Actions tab in your repository.
+**Why This Approach:**
+- Local generation avoids GitHub Actions memory/time limits
+- 2GB dataset with millions of records can be processed locally
+- Committed reports ensure reproducible deployments
+- Fast deployments (~30 seconds) - just copying static files
 
 ## License
 

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Churn Risk & Growth Signals</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white;
+                      padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #1a1a1a; margin-top: 0; font-size: 32px; }
+        h2 { color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 40px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                        gap: 20px; margin: 30px 0; }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .metric-label { font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 32px; font-weight: bold; margin-top: 8px; }
+        .metric-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .metric-card:nth-child(3) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .metric-card:nth-child(4) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th { background: #f8f9fa; padding: 14px; text-align: left; font-weight: 600;
+              border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase;
+              color: #666; letter-spacing: 0.5px; }
+        td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f8f9fa; }
+        .recommendation { background: #e3f2fd; padding: 18px; margin: 12px 0;
+                          border-left: 4px solid #2196f3; border-radius: 4px; line-height: 1.6; }
+        .timestamp { color: #999; font-size: 14px; margin-top: 40px; text-align: center;
+                      padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .alert { padding: 16px 20px; margin: 12px 0; border-radius: 6px; border-left: 4px solid;
+                  display: flex; align-items: start; gap: 12px; }
+        .alert-critical { background: #fef1f1; border-color: #d32f2f; }
+        .alert-warning { background: #fff8e1; border-color: #f57c00; }
+        .alert-info { background: #e3f2fd; border-color: #1976d2; }
+        .alert-success { background: #f1f8f4; border-color: #388e3c; }
+        .alert-icon { font-size: 24px; line-height: 1; }
+        .alert-content { flex: 1; }
+        .alert-title { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .alert-description { opacity: 0.9; line-height: 1.5; }
+        .chart-container { position: relative; height: 350px; margin: 30px 0; }
+    
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <h1>📈 Churn Risk & Growth Signals</h1>
+        <p style="color: #666; font-size: 16px; margin-top: -10px;">
+            Customer engagement analysis, expansion opportunities, and retention insights
+        </p>
+
+        <h2>Summary Metrics</h2>
+        
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Customers</div>
+                <div class="metric-value">475</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="metric-label">At-Risk Customers</div>
+                <div class="metric-value">0</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #d32f2f 0%, #f57c00 100%);">
+                <div class="metric-label">Revenue at Risk</div>
+                <div class="metric-value">$0.00</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="metric-label">Expansion Opps</div>
+                <div class="metric-value">0</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="metric-label">Expansion Revenue</div>
+                <div class="metric-value">$0.00</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="metric-label">Avg Features/Customer</div>
+                <div class="metric-value">2.5</div>
+            </div>
+        </div>
+    
+
+        <h2>Usage Velocity Trends</h2>
+        <div class="chart-container">
+            <canvas id="velocityChart"></canvas>
+        </div>
+        <p style="color: #666; margin-top: 20px;">
+            Customer usage trends over the analysis period: 0 days.
+            Growing customers show &gt;20% increase, declining show &gt;20% decrease.
+        </p>
+
+        <h2>Churn Risk Customers</h2>
+        <div class="alert alert-critical" style="margin-bottom: 20px;">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <div class="alert-title">Action Required</div>
+                <div class="alert-description">
+                    0 customers at churn risk representing $0.00 in monthly revenue.
+                    Immediate customer success intervention recommended.
+                </div>
+            </div>
+        </div>
+        <p style='color: #666;'>No customers at significant churn risk.</p>
+
+        <h2>Expansion Opportunities</h2>
+        <div class="alert alert-success" style="margin-bottom: 20px;">
+            <div class="alert-icon">💰</div>
+            <div class="alert-content">
+                <div class="alert-title">Revenue Growth Potential</div>
+                <div class="alert-description">
+                    0 customers ready for tier upgrades with $0.00 in potential monthly expansion revenue.
+                </div>
+            </div>
+        </div>
+        <p style='color: #666;'>No expansion opportunities identified.</p>
+
+        <h2>Customer Engagement Scores</h2>
+        <div class="chart-container">
+            <canvas id="engagementChart"></canvas>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer ID</th>
+                    <th style="text-align: right;">Engagement Score</th>
+                    <th>Level</th>
+                    <th style="text-align: right;">Total Calls</th>
+                    <th style="text-align: right;">Features Used</th>
+                    <th style="text-align: right;">Total Spend</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>cust_0444</td>
+                <td style="text-align: right;">37.3</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">9</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.03</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0221</td>
+                <td style="text-align: right;">36.7</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">8</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.10</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0094</td>
+                <td style="text-align: right;">36.5</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">8</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.04</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0491</td>
+                <td style="text-align: right;">36.5</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">8</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.03</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0266</td>
+                <td style="text-align: right;">35.8</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">7</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.06</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0073</td>
+                <td style="text-align: right;">35.7</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">7</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.05</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0232</td>
+                <td style="text-align: right;">35.7</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">7</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.04</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0092</td>
+                <td style="text-align: right;">35.7</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">7</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.03</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0459</td>
+                <td style="text-align: right;">34.9</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">6</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.03</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0321</td>
+                <td style="text-align: right;">34.9</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">6</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.03</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0385</td>
+                <td style="text-align: right;">34.9</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">6</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.02</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0298</td>
+                <td style="text-align: right;">34.8</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">6</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.01</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0191</td>
+                <td style="text-align: right;">34.2</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.06</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0332</td>
+                <td style="text-align: right;">34.1</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.03</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0372</td>
+                <td style="text-align: right;">34.1</td>
+                <td style="color: #d32f2f; font-weight: bold;">LOW</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.02</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #333;">Feature Adoption Metrics</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div>
+                    <strong>Single-Feature Customers:</strong><br>
+                    <span style="font-size: 24px; color: #667eea;">88</span>
+                    <span style="color: #666; font-size: 13px;"> (18.5%)</span>
+                </div>
+                <div>
+                    <strong>Multi-Feature Customers:</strong><br>
+                    <span style="font-size: 24px; color: #43e97b;">387</span>
+                    <span style="color: #666; font-size: 13px;"> (81.5%)</span>
+                </div>
+                <div>
+                    <strong>Avg Features per Customer:</strong><br>
+                    <span style="font-size: 24px; color: #4facfe;">2.51</span>
+                </div>
+            </div>
+        </div>
+    
+
+        <h2>Tier Mismatch Analysis</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customers on the wrong tier for their usage patterns - both upgrade and downgrade opportunities.
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer ID</th>
+                    <th>Current Tier</th>
+                    <th>Mismatch Type</th>
+                    <th style="text-align: right;">Total Calls</th>
+                    <th style="text-align: right;">Total Cost</th>
+                    <th style="text-align: right;">Severity</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>cust_0060</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0306</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.03</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0471</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0071</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">2</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0241</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$0.11</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0191</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">5</td>
+                <td style="text-align: right;">$0.06</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0027</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$0.13</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0373</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$0.05</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0481</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">2</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0300</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$0.18</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0459</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">6</td>
+                <td style="text-align: right;">$0.03</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0427</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">2</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0124</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0148</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$0.01</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            <tr>
+                <td>cust_0315</td>
+                <td>Enterprise</td>
+                <td style="color: #f57c00; font-weight: bold;">Oversubscribed</td>
+                <td style="text-align: right;">2</td>
+                <td style="text-align: right;">$0.00</td>
+                <td style="text-align: right;">🔴</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Cohort Analysis</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Customer segmentation by subscription tier and usage archetype.
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Tier</th>
+                    <th>Archetype</th>
+                    <th style="text-align: right;">Customers</th>
+                    <th style="text-align: right;">Total Calls</th>
+                    <th style="text-align: right;">Avg Calls/Customer</th>
+                    <th style="text-align: right;">Total Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td>Starter</td>
+                <td>Light</td>
+                <td style="text-align: right;">150</td>
+                <td style="text-align: right;">499</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$2.12</td>
+            </tr>
+        
+            <tr>
+                <td>Pro</td>
+                <td>Light</td>
+                <td style="text-align: right;">119</td>
+                <td style="text-align: right;">417</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$1.63</td>
+            </tr>
+        
+            <tr>
+                <td>Enterprise</td>
+                <td>Light</td>
+                <td style="text-align: right;">51</td>
+                <td style="text-align: right;">178</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$0.84</td>
+            </tr>
+        
+            <tr>
+                <td>Starter</td>
+                <td>Power</td>
+                <td style="text-align: right;">49</td>
+                <td style="text-align: right;">176</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$2.00</td>
+            </tr>
+        
+            <tr>
+                <td>Pro</td>
+                <td>Power</td>
+                <td style="text-align: right;">37</td>
+                <td style="text-align: right;">126</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$1.56</td>
+            </tr>
+        
+            <tr>
+                <td>Starter</td>
+                <td>Heavy</td>
+                <td style="text-align: right;">30</td>
+                <td style="text-align: right;">118</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$3.47</td>
+            </tr>
+        
+            <tr>
+                <td>Pro</td>
+                <td>Heavy</td>
+                <td style="text-align: right;">16</td>
+                <td style="text-align: right;">53</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$1.44</td>
+            </tr>
+        
+            <tr>
+                <td>Enterprise</td>
+                <td>Power</td>
+                <td style="text-align: right;">17</td>
+                <td style="text-align: right;">52</td>
+                <td style="text-align: right;">3</td>
+                <td style="text-align: right;">$0.62</td>
+            </tr>
+        
+            <tr>
+                <td>Enterprise</td>
+                <td>Heavy</td>
+                <td style="text-align: right;">6</td>
+                <td style="text-align: right;">23</td>
+                <td style="text-align: right;">4</td>
+                <td style="text-align: right;">$0.73</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    
+
+        <h2>Recommendations</h2>
+        <div class="recommendation">1. 💸 246 customers are oversubscribed (paying for unused capacity). Proactively offer downgrades to prevent churn and build trust.</div>
+
+    
+
+        <div class="timestamp">
+            Generated: 2026-01-01 14:50:13 |
+            <a href="index.html" style="color: #2196f3; text-decoration: none;">View All Reports</a>
+        </div>
+    </div>
+
+    
+    <script>
+        // Usage velocity distribution
+        new Chart(document.getElementById('velocityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Growing', 'Stable', 'Declining'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: [
+                        'rgba(67, 233, 123, 0.8)',
+                        'rgba(79, 172, 254, 0.8)',
+                        'rgba(211, 47, 47, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }
+                }
+            }
+        });
+
+        // Engagement level distribution
+        var engagementHigh = 0;
+        var engagementMedium = 0;
+        var engagementLow = 475;
+
+        new Chart(document.getElementById('engagementChart'), {
+            type: 'bar',
+            data: {
+                labels: ['High', 'Medium', 'Low'],
+                datasets: [{
+                    label: 'Customers by Engagement Level',
+                    data: [engagementHigh, engagementMedium, engagementLow],
+                    backgroundColor: [
+                        'rgba(67, 233, 123, 0.8)',
+                        'rgba(240, 147, 251, 0.8)',
+                        'rgba(211, 47, 47, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+    
+</body>
+</html>
