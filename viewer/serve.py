@@ -950,6 +950,7 @@ class StatusViewerServer:
     <meta charset="UTF-8">
     <title>Revenium FinOps Showcase - Analysis Reports</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
@@ -1097,6 +1098,98 @@ class StatusViewerServer:
         .github-link:hover {{
             text-decoration: underline;
         }}
+        /* Executive Summary Styles */
+        .executive-summary {{
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            margin: 40px 0;
+        }}
+        .insight-card {{
+            background: white;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            overflow: hidden;
+            transition: all 0.3s;
+        }}
+        .insight-card:hover {{
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            border-color: #667eea;
+        }}
+        .insight-header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }}
+        .insight-number {{
+            background: rgba(255,255,255,0.2);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }}
+        .insight-header h3 {{
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            line-height: 1.3;
+        }}
+        .insight-content {{
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }}
+        @media (max-width: 1024px) {{
+            .insight-content {{
+                grid-template-columns: 1fr;
+            }}
+        }}
+        .insight-text {{
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }}
+        .insight-finding {{
+            padding: 16px;
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            border-radius: 4px;
+            line-height: 1.6;
+        }}
+        .insight-detail {{
+            padding: 16px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            line-height: 1.6;
+        }}
+        .insight-action {{
+            padding: 16px;
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            border-radius: 4px;
+            line-height: 1.6;
+        }}
+        .insight-visual {{
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }}
+        .insight-visual canvas {{
+            max-width: 100%;
+            max-height: 400px;
+        }}
     </style>
 </head>
 <body>
@@ -1129,6 +1222,81 @@ class StatusViewerServer:
                 </div>
             </div>
 
+            <h2 style="color: #1a1a1a; margin: 40px 0 20px 0; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0;">Executive Summary</h2>
+            <div class="executive-summary">
+                <!-- Insight 1: Starter Tier Paradox -->
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-number">1</div>
+                        <h3>The "Starter Tier Paradox": Inverse Economics at Scale</h3>
+                    </div>
+                    <div class="insight-content">
+                        <div class="insight-text">
+                            <div class="insight-finding">
+                                <strong>Key Metric:</strong> Starter tier ($29/month) operates at -264.6% margin with 418 expansion-ready customers representing $51,100 in untapped monthly revenue.
+                            </div>
+                            <div class="insight-detail">
+                                <strong>Business Impact:</strong> Your worst-performing segment is simultaneously your highest-value expansion pipeline. 482 starter customers generating 196-222% growth rates consume $106/customer in AI costs while paying $29—a deliberate arbitrage, not accidental usage.
+                            </div>
+                            <div class="insight-action">
+                                <strong>Recommended Action:</strong> Implement hybrid pricing: $29 base tier with ~20K token allowance, then graduated usage pricing beyond threshold. This preserves acquisition while automatically capturing value as customers scale—converting the loss center into a self-correcting revenue engine without disrupting the funnel.
+                            </div>
+                        </div>
+                        <div class="insight-visual">
+                            <canvas id="starterTierChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insight 2: Portfolio Misallocation Crisis -->
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-number">2</div>
+                        <h3>The Portfolio Misallocation Crisis: $400K+ in Accumulated Losses from "Power User" Subsidy</h3>
+                    </div>
+                    <div class="insight-content">
+                        <div class="insight-text">
+                            <div class="insight-finding">
+                                <strong>Key Metric:</strong> 459 heavy users (92% of base) at -185% margins vs. 1 light user at 72% margin. 426 unprofitable customers losing $68K monthly ($819K annually).
+                            </div>
+                            <div class="insight-detail">
+                                <strong>Business Impact:</strong> Customer acquisition strategy systematically attracts unprofitable profiles. Marketing positions "unlimited AI for $99/month" when unit economics require &lt;5K tokens/month usage. Current funnel selects against profitable customers.
+                            </div>
+                            <div class="insight-action">
+                                <strong>Recommended Action:</strong> Reverse-engineer the 23 high-margin customers (&gt;50% margins)—teams using AI for bounded workflows vs. replacing job functions. Rebuild acquisition to attract 100 customers matching this profile. Prioritize margin quality over volume scale.
+                            </div>
+                        </div>
+                        <div class="insight-visual">
+                            <canvas id="portfolioChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insight 3: Free-Tier-to-Paid Conversion Illusion -->
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-number">3</div>
+                        <h3>The Free-Tier-to-Paid Conversion Illusion: 95% Retention on Free = 95% Revenue Leakage</h3>
+                    </div>
+                    <div class="insight-content">
+                        <div class="insight-text">
+                            <div class="insight-finding">
+                                <strong>Key Metric:</strong> 50K free users at $2/user cost = $100K/month in unrecovered expenses. 95% retention on free tier with &lt;5% conversion to paid. "Advanced AI Analytics" costs $30K/month with 3% adoption ($560K annual waste).
+                            </div>
+                            <div class="insight-detail">
+                                <strong>Business Impact:</strong> Free tier is too generous—users love the product at $0 but won't upgrade. Paid tiers bloated with 12 underutilized features justify discounting. Creates vicious cycle: generous free tier → low conversion → add unused features → worse margins → more discounting.
+                            </div>
+                            <div class="insight-action">
+                                <strong>Recommended Action:</strong> Redesign free tier to create intentional friction (60 min/month at $0.30/user, targeting 8% conversion). Sunset 12 underutilized features. Rebuild paid tiers around the 3 high-adoption features (61% of costs, ~100% usage). Clear value prop: pay to remove limits on features you already use.
+                            </div>
+                        </div>
+                        <div class="insight-visual">
+                            <canvas id="freeTierChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {report_cards_html}
 
             <div class="footer">
@@ -1137,6 +1305,215 @@ class StatusViewerServer:
             </div>
         </div>
     </div>
+    <script>
+        // Initialize Executive Summary Charts
+        function initExecutiveSummaryCharts() {{
+            // Chart 1: Starter Tier Paradox - Margin vs Expansion Potential
+            const starterTierCtx = document.getElementById('starterTierChart');
+            if (starterTierCtx) {{
+                new Chart(starterTierCtx, {{
+                    type: 'bar',
+                    data: {{
+                        labels: ['Current Margin', 'AI Cost per Customer', 'Expansion Potential'],
+                        datasets: [{{
+                            label: 'Starter Tier Economics',
+                            data: [-264.6, 106, 51100/482],
+                            backgroundColor: [
+                                'rgba(244, 67, 54, 0.7)',
+                                'rgba(255, 152, 0, 0.7)',
+                                'rgba(76, 175, 80, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(244, 67, 54, 1)',
+                                'rgba(255, 152, 0, 1)',
+                                'rgba(76, 175, 80, 1)'
+                            ],
+                            borderWidth: 2
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {{
+                            legend: {{
+                                display: false
+                            }},
+                            title: {{
+                                display: true,
+                                text: 'Starter Tier: Loss vs Expansion Value',
+                                font: {{
+                                    size: 16,
+                                    weight: 'bold'
+                                }}
+                            }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        let label = context.dataset.label || '';
+                                        if (label) {{
+                                            label += ': ';
+                                        }}
+                                        if (context.dataIndex === 0) {{
+                                            label += context.parsed.y + '% margin';
+                                        }} else if (context.dataIndex === 1) {{
+                                            label += '$' + context.parsed.y + ' per customer';
+                                        }} else {{
+                                            label += '$' + context.parsed.y.toFixed(0) + ' per customer';
+                                        }}
+                                        return label;
+                                    }}
+                                }}
+                            }}
+                        }},
+                        scales: {{
+                            y: {{
+                                beginAtZero: true,
+                                title: {{
+                                    display: true,
+                                    text: 'Value ($)'
+                                }}
+                            }}
+                        }}
+                    }}
+                }});
+            }}
+
+            // Chart 2: Portfolio Misallocation - Customer Distribution
+            const portfolioCtx = document.getElementById('portfolioChart');
+            if (portfolioCtx) {{
+                new Chart(portfolioCtx, {{
+                    type: 'doughnut',
+                    data: {{
+                        labels: [
+                            'Heavy Users (-185% margin)',
+                            'Unprofitable Customers',
+                            'High-Margin Customers',
+                            'Light Users (72% margin)'
+                        ],
+                        datasets: [{{
+                            data: [459, 426, 23, 1],
+                            backgroundColor: [
+                                'rgba(244, 67, 54, 0.7)',
+                                'rgba(255, 152, 0, 0.7)',
+                                'rgba(76, 175, 80, 0.7)',
+                                'rgba(33, 150, 243, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(244, 67, 54, 1)',
+                                'rgba(255, 152, 0, 1)',
+                                'rgba(76, 175, 80, 1)',
+                                'rgba(33, 150, 243, 1)'
+                            ],
+                            borderWidth: 2
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {{
+                            legend: {{
+                                position: 'bottom',
+                                labels: {{
+                                    padding: 15,
+                                    font: {{
+                                        size: 11
+                                    }}
+                                }}
+                            }},
+                            title: {{
+                                display: true,
+                                text: 'Customer Profitability Distribution',
+                                font: {{
+                                    size: 16,
+                                    weight: 'bold'
+                                }}
+                            }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        let label = context.label || '';
+                                        let value = context.parsed;
+                                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        let percentage = ((value / total) * 100).toFixed(1);
+                                        return label + ': ' + value + ' customers (' + percentage + '%)';
+                                    }}
+                                }}
+                            }}
+                        }}
+                    }}
+                }});
+            }}
+
+            // Chart 3: Free Tier Conversion - Retention vs Revenue
+            const freeTierCtx = document.getElementById('freeTierChart');
+            if (freeTierCtx) {{
+                new Chart(freeTierCtx, {{
+                    type: 'bar',
+                    data: {{
+                        labels: ['Free Tier Retention', 'Conversion to Paid', 'Feature Waste', 'Cost Recovery'],
+                        datasets: [{{
+                            label: 'Percentage',
+                            data: [95, 5, 75, 5],
+                            backgroundColor: [
+                                'rgba(244, 67, 54, 0.7)',
+                                'rgba(255, 152, 0, 0.7)',
+                                'rgba(156, 39, 176, 0.7)',
+                                'rgba(76, 175, 80, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(244, 67, 54, 1)',
+                                'rgba(255, 152, 0, 1)',
+                                'rgba(156, 39, 176, 1)',
+                                'rgba(76, 175, 80, 1)'
+                            ],
+                            borderWidth: 2
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {{
+                            legend: {{
+                                display: false
+                            }},
+                            title: {{
+                                display: true,
+                                text: 'Free Tier Economics',
+                                font: {{
+                                    size: 16,
+                                    weight: 'bold'
+                                }}
+                            }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        return context.label + ': ' + context.parsed.y + '%';
+                                    }}
+                                }}
+                            }}
+                        }},
+                        scales: {{
+                            y: {{
+                                beginAtZero: true,
+                                max: 100,
+                                title: {{
+                                    display: true,
+                                    text: 'Percentage (%)'
+                                }}
+                            }}
+                        }}
+                    }}
+                }});
+            }}
+        }}
+
+        // Initialize charts when DOM is ready
+        if (document.readyState === 'loading') {{
+            document.addEventListener('DOMContentLoaded', initExecutiveSummaryCharts);
+        }} else {{
+            initExecutiveSummaryCharts();
+        }}
+    </script>
 </body>
 </html>
 """
