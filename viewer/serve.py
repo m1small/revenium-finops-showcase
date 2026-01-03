@@ -874,19 +874,19 @@ class StatusViewerServer:
 
         # Find all HTML reports in the report directory
         report_configs = [
-            {'filename': 'understanding_cost_usage.html', 'title': 'Understanding Usage & Cost', 'category': 'FinOps'},
-            {'filename': 'performance_tracking.html', 'title': 'Performance Tracking', 'category': 'FinOps'},
-            {'filename': 'realtime_decision_making.html', 'title': 'Real-Time Decision Making', 'category': 'FinOps'},
-            {'filename': 'optimization_opportunities.html', 'title': 'Rate Optimization', 'category': 'FinOps'},
-            {'filename': 'organizational_alignment.html', 'title': 'Organizational Alignment', 'category': 'FinOps'},
-            {'filename': 'customer_profitability.html', 'title': 'Customer Profitability', 'category': 'Usage-Based Revenue'},
-            {'filename': 'pricing_strategy.html', 'title': 'Pricing Strategy', 'category': 'Usage-Based Revenue'},
-            {'filename': 'feature_economics.html', 'title': 'Feature Economics', 'category': 'Usage-Based Revenue'},
-            {'filename': 'dataset_overview.html', 'title': 'Dataset Overview', 'category': 'Advanced Analytics'},
-            {'filename': 'token_economics.html', 'title': 'Token Economics', 'category': 'Advanced Analytics'},
-            {'filename': 'geographic_latency.html', 'title': 'Geographic Latency', 'category': 'Advanced Analytics'},
-            {'filename': 'churn_growth.html', 'title': 'Churn & Growth Analysis', 'category': 'Advanced Analytics'},
-            {'filename': 'abuse_detection.html', 'title': 'Abuse Detection', 'category': 'Advanced Analytics'}
+            {'filename': 'dataset_overview.html', 'title': 'Dataset Overview', 'description': 'Comprehensive statistical analysis and distribution metrics', 'category': 'Core Analytics'},
+            {'filename': 'understanding.html', 'title': 'Understanding Usage & Cost', 'description': 'High-level cost and usage patterns across the platform', 'category': 'Core Analytics'},
+            {'filename': 'performance.html', 'title': 'Performance Tracking', 'description': 'Latency analysis and SLA compliance monitoring', 'category': 'Core Analytics'},
+            {'filename': 'profitability.html', 'title': 'Customer Profitability', 'description': 'Revenue vs cost analysis by customer segment', 'category': 'Financial & Revenue Analytics'},
+            {'filename': 'pricing.html', 'title': 'Pricing Strategy', 'description': 'Pricing model effectiveness and optimization opportunities', 'category': 'Financial & Revenue Analytics'},
+            {'filename': 'features.html', 'title': 'Feature Economics', 'description': 'Cost and usage analysis by product feature', 'category': 'Financial & Revenue Analytics'},
+            {'filename': 'realtime.html', 'title': 'Real-Time Decision Making', 'description': 'Live monitoring and immediate cost visibility', 'category': 'Operational Insights'},
+            {'filename': 'optimization.html', 'title': 'Rate Optimization', 'description': 'Model selection and cost reduction opportunities', 'category': 'Operational Insights'},
+            {'filename': 'alignment.html', 'title': 'Organizational Alignment', 'description': 'Cross-team visibility and cost attribution', 'category': 'Operational Insights'},
+            {'filename': 'token_economics.html', 'title': 'Token Economics & Efficiency', 'description': 'Token usage patterns and optimization metrics', 'category': 'Advanced Analytics'},
+            {'filename': 'geographic_latency.html', 'title': 'Geographic & Latency Intelligence', 'description': 'Regional performance and infrastructure optimization', 'category': 'Advanced Analytics'},
+            {'filename': 'churn_growth.html', 'title': 'Churn Risk & Growth Signals', 'description': 'Customer health and expansion opportunities', 'category': 'Advanced Analytics'},
+            {'filename': 'abuse_detection.html', 'title': 'Abuse Detection & Security', 'description': 'Anomaly detection and usage pattern analysis', 'category': 'Advanced Analytics'}
         ]
 
         # Check which reports exist
@@ -912,7 +912,7 @@ class StatusViewerServer:
 
         generation_time = manifest.get('generated_at', 'Unknown')
         data_size_mb = manifest.get('data_size_mb', 'Unknown')
-        total_calls_raw = manifest.get('total_calls', 'Unknown')
+        total_calls_raw = manifest.get('total_calls') or manifest.get('call_count', 'Unknown')
 
         # Format total_calls with commas if it's a number
         if isinstance(total_calls_raw, (int, float)):
@@ -928,17 +928,26 @@ class StatusViewerServer:
                 categories[cat] = []
             categories[cat].append(report)
 
-        # Build report cards HTML
+        # Build report cards HTML with proper emoji prefixes
+        category_emojis = {
+            'Core Analytics': '📊',
+            'Financial & Revenue Analytics': '💰',
+            'Operational Insights': '🚀',
+            'Advanced Analytics': '🔬'
+        }
+
         report_cards_html = ''
         for category, reports in categories.items():
-            report_cards_html += f'<h3 class="category-header">{category}</h3>\n'
+            emoji = category_emojis.get(category, '📈')
+            report_cards_html += f'<h3 class="category-header">{emoji} {category}</h3>\n'
             report_cards_html += '<div class="report-grid">\n'
             for report in reports:
+                description = report.get('description', f'{report["size_kb"]:.1f} KB')
                 report_cards_html += f'''
                 <div class="report-card">
                     <div class="status-badge complete">✓ Available</div>
                     <h4>{report['title']}</h4>
-                    <p>{report['size_kb']:.1f} KB</p>
+                    <p>{description}</p>
                     <a href="{report['filename']}" class="view-button">View Report →</a>
                 </div>
 '''
