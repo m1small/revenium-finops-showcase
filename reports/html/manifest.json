@@ -1,7 +1,8 @@
 {
-  "generated_at": "2026-01-01T14:50:13.833882",
-  "call_count": 1642,
-  "data_size_mb": 0.27,
-  "target_size_mb": 50.0,
-  "progress_pct": 0.5348339080810547
+  "generated_at": "2026-01-02T18:40:00",
+  "call_count": 12625518,
+  "data_size_mb": 2048,
+  "total_cost_usd": 111168.79,
+  "date_range_days": 7.0,
+  "report_count": 13
 }
