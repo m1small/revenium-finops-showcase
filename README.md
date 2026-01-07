@@ -203,9 +203,9 @@ python3 serve.py
 The showcase is deployed to GitHub Pages using a simple static file approach.
 
 **Local Generation and Deployment:**
-1. Generate data locally: `cd src && python3 run_all_simulators.py 2048`
-2. Run analyzers locally: `python3 run_all_analyzers.py`
-3. Generate static index: `cd ../viewer && python3 -c "import sys; sys.path.insert(0, '.'); from serve import StatusViewerServer; StatusViewerServer(report_dir='../reports/html').create_status_page('../reports/html/index.html', static_mode=True)"`
+1. Generate data locally (if needed): `cd src && python3 run_all_simulators.py 2048`
+2. Run analyzers locally: `python3 run_all_analyzers.py` (generates all 13 reports + index.html with Executive Summary + manifest.json)
+3. Verify deployment: `python3 scripts/verify_deployment.py` (optional but recommended)
 4. Commit reports: `git add reports/html/ && git commit -m "Update reports" && git push`
 5. GitHub Actions automatically deploys the updated reports to GitHub Pages
 
